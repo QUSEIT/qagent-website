@@ -1,12 +1,4 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>龙虾OpenClaw智能体服务</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    /* 内联样式确保主题色立即生效，避免闪烁 */
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>龙虾OpenClaw智能体服务</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>/* 内联样式确保主题色立即生效，避免闪烁 */
     html, body {
       margin: 0;
       padding: 0;
@@ -20,10 +12,7 @@
     html.dark, html.dark body {
       background-color: #1a1a1a !important;
       color: #ffffff;
-    }
-  </style>
-  <script>
-    // 在 React 加载前立即设置主题，避免闪烁
+    }</style><script>// 在 React 加载前立即设置主题，避免闪烁
     (function() {
       const isInIframe = window.self !== window.top;
 
@@ -47,11 +36,4 @@
         // 非 iframe 环境，使用默认 light 主题
         applyThemeToDOM('light');
       }
-    })();
-  </script>
-</head>
-<body>
-  <div id="root"></div>
-</body>
-</html>
-
+    })();</script></head><body><div id="root"></div><script defer="defer" src="bundle.js"></script></body></html>
