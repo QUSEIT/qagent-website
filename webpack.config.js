@@ -50,7 +50,14 @@ module.exports = (env, argv) => {
         rewrites: [
           { from: /^\/_p\/\d+\//, to: '/index.html' }
         ]
-      }
+      },
+      proxy: [
+        {
+          context: ['/api'],
+          target: 'http://localhost:8000',
+          changeOrigin: true,
+        }
+      ]
     },
     plugins: [
       new HtmlWebpackPlugin({
