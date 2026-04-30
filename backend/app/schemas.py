@@ -27,7 +27,7 @@ class UserOut(BaseModel):
     id: int
     email: str
     username: str
-    hermes_instance_id: Optional[int]
+    qagent_instance_id: Optional[int]
     created_at: datetime
 
     class Config:
@@ -41,9 +41,10 @@ class RefreshTokenRequest(BaseModel):
 class HermesStatus(BaseModel):
     has_instance: bool
     instance_id: Optional[int] = None
+    instance_type: Optional[str] = None
 
 
-class HermesCreateResponse(BaseModel):
+class QAgentCreateResponse(BaseModel):
     instance_id: int
     message: str
 

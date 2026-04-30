@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  Cpu, ExternalLink, LogOut, Rocket, Server, Shield, Sparkles, User, Zap,
+  ChevronDown, Cpu, ExternalLink, LogOut, Rocket, Server, Shield, Sparkles, User, Zap,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
@@ -10,7 +10,10 @@ import api from "../services/api";
 interface HermesStatus {
   has_instance: boolean;
   instance_id: number | null;
+  instance_type?: string;
 }
+
+type InstanceType = "OpenClaw" | "HermesAgent";
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -18,7 +21,9 @@ const DashboardPage: React.FC = () => {
   const [status, setStatus] = useState<HermesStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [instanceName, setInstanceName] = useState("我的 HermesAgent");
+  const [instanceName, setInstanceName] = useState("我的 QAgent");
+  const [instanceType, setInstanceType] = useState<InstanceType>("OpenClaw");
+  const [showConfig, setShowConfig] = useState(false);
   const [error, setError] = useState("");
   const [accessInfo, setAccessInfo] = useState<{
     proxy_url: string;
@@ -31,7 +36,7 @@ const DashboardPage: React.FC = () => {
 
   const fetchStatus = async () => {
     try {
-      const response = await api.get("/hermes/status");
+      const response = await api.get("/qagent/status");
       setStatus(response.data);
     } catch (err: any) {
       setError(err.response?.data?.detail || "获取状态失败");
@@ -46,7 +51,7 @@ const DashboardPage: React.FC = () => {
     setIsCreating(true);
 
     try {
-      await api.post("/hermes/create", null, { params: { name: instanceName } });
+      await api.post("/qagent/create", null, { params: { name: instanceName, type: instanceType } });
       await refreshUser();
       await fetchStatus();
     } catch (err: any) {
@@ -59,7 +64,7 @@ const DashboardPage: React.FC = () => {
   const handleAccess = async () => {
     setError("");
     try {
-      const response = await api.post("/hermes/access");
+      const response = await api.post("/qagent/access");
       setAccessInfo(response.data);
       window.open(response.data.proxy_url, "_blank");
     } catch (err: any) {
@@ -133,8 +138,8 @@ const DashboardPage: React.FC = () => {
           </h1>
           <p className="text-slate-400">
             {status?.has_instance
-              ? "您的 HermesAgent AI 助理已就绪"
-              : "您还没有开通 HermesAgent AI 助理，点击下方按钮立即开通"}
+              ? "您的 QAgent AI 助理已就绪"
+              : "您还没有开通 QAgent AI 助理，点击下方按钮立即开通"}
           </p>
         </motion.div>
 
@@ -151,7 +156,7 @@ const DashboardPage: React.FC = () => {
                   <Rocket className="w-6 h-6 text-amber-400" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">开通 HermesAgent</h2>
+                  <h2 className="text-xl font-bold text-white">开通我的QAgent</h2>
                   <p className="text-slate-400 text-sm">每人限开通一个 AI 助理</p>
                 </div>
               </div>
@@ -172,34 +177,69 @@ const DashboardPage: React.FC = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Cpu className="w-4 h-4 text-amber-400" />
-                      <span className="text-slate-300 text-sm font-medium">CPU</span>
-                    </div>
-                    <p className="text-white text-lg font-bold">2 核</p>
-                  </div>
-                  <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Zap className="w-4 h-4 text-blue-400" />
-                      <span className="text-slate-300 text-sm font-medium">内存</span>
-                    </div>
-                    <p className="text-white text-lg font-bold">4 GB</p>
-                  </div>
-                  <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Server className="w-4 h-4 text-green-400" />
-                      <span className="text-slate-300 text-sm font-medium">磁盘</span>
-                    </div>
-                    <p className="text-white text-lg font-bold">20 GB</p>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    实例类型
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(["OpenClaw", "HermesAgent"] as InstanceType[]).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setInstanceType(type)}
+                        className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all ${
+                          instanceType === type
+                            ? "border-amber-500 bg-amber-500/10 text-amber-400"
+                            : "border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600"
+                        }`}
+                      >
+                        {type}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-slate-400 text-sm">
-                  <Shield className="w-4 h-4 text-green-400" />
-                  <span>系统：Ubuntu 22.04 | 类型：HermesAgent Desktop</span>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowConfig(!showConfig)}
+                  className="flex items-center justify-between w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-300 hover:border-slate-600 transition-all"
+                >
+                  <span className="text-sm font-medium">助理配置</span>
+                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showConfig ? "rotate-180" : ""}`} />
+                </button>
+
+                {showConfig && (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Cpu className="w-4 h-4 text-amber-400" />
+                          <span className="text-slate-300 text-sm font-medium">CPU</span>
+                        </div>
+                        <p className="text-white text-lg font-bold">2 核</p>
+                      </div>
+                      <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Zap className="w-4 h-4 text-blue-400" />
+                          <span className="text-slate-300 text-sm font-medium">内存</span>
+                        </div>
+                        <p className="text-white text-lg font-bold">4 GB</p>
+                      </div>
+                      <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Server className="w-4 h-4 text-green-400" />
+                          <span className="text-slate-300 text-sm font-medium">磁盘</span>
+                        </div>
+                        <p className="text-white text-lg font-bold">20 GB</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-slate-400 text-sm">
+                      <Shield className="w-4 h-4 text-green-400" />
+                      <span>系统：Ubuntu 22.04 | 类型：{status?.instance_type || instanceType}</span>
+                    </div>
+                  </div>
+                )}
 
                 <button
                   type="submit"
@@ -234,7 +274,7 @@ const DashboardPage: React.FC = () => {
                   <Sparkles className="w-6 h-6 text-green-400" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">HermesAgent 管理</h2>
+                  <h2 className="text-xl font-bold text-white">QAgent 管理</h2>
                   <p className="text-slate-400 text-sm">实例 ID: {status.instance_id}</p>
                 </div>
               </div>

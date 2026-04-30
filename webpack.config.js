@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const webpack = require('webpack');
 
 module.exports = (env, argv) => {
   const isDev = argv.mode !== 'production';
@@ -63,6 +64,9 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         template: './index.html',
         inject: 'body'
+      }),
+      new webpack.DefinePlugin({
+        'process.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || '')
       })
     ]
   };

@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import User
-from app.schemas import HermesStatus, HermesCreateResponse, HermesAccessResponse
+from app.schemas import HermesStatus, QAgentCreateResponse, HermesAccessResponse
 from app.services.clawmanager import clawmanager_client
 
-router = APIRouter(prefix="/hermes", tags=["hermes"])
+router = APIRouter(prefix="/qagent", tags=["qagent"])
 
 DEFAULT_HERMES_CONFIG = {
     "type": "hermesagent",
@@ -20,44 +20,52 @@ DEFAULT_HERMES_CONFIG = {
     "gpu_count": 0,
 }
 
+TYPE_MAP = {
+    "OpenClaw": "openclaw",
+    "HermesAgent": "hermesagent",
+}
+
 
 @router.get("/status", response_model=HermesStatus)
 def get_status(user: User = Depends(get_current_user)):
     return HermesStatus(
-        has_instance=user.hermes_instance_id is not None,
-        instance_id=user.hermes_instance_id,
+        has_instance=user.qagent_instance_id is not None,
+        instance_id=user.qagent_instance_id,
+        instance_type=user.qagent_instance_type,
     )
 
 
-@router.post("/create", response_model=HermesCreateResponse)
-def create_hermes(
-    name: str = "我的 HermesAgent",
+@router.post("/create", response_model=QAgentCreateResponse)
+def create_qagent(
+    name: str = "我的 QAgent",
+    type: str = "OpenClaw",
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if user.hermes_instance_id:
-        raise HTTPException(status_code=400, detail="HermesAgent already exists")
+    if user.qagent_instance_id:
+        raise HTTPException(status_code=400, detail="QAgent already exists")
 
-    payload = {**DEFAULT_HERMES_CONFIG, "name": name}
+    payload = {**DEFAULT_HERMES_CONFIG, "name": name, "type": TYPE_MAP.get(type, "openclaw")}
     try:
         result = clawmanager_client.create_instance(payload)
         instance_id = result["data"]["id"]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create instance: {str(e)}")
 
-    user.hermes_instance_id = instance_id
+    user.qagent_instance_id = instance_id
+    user.qagent_instance_type = type
     db.commit()
 
-    return HermesCreateResponse(instance_id=instance_id, message="HermesAgent created successfully")
+    return QAgentCreateResponse(instance_id=instance_id, message="QAgent created successfully")
 
 
 @router.post("/access", response_model=HermesAccessResponse)
-def access_hermes(user: User = Depends(get_current_user)):
-    if not user.hermes_instance_id:
-        raise HTTPException(status_code=404, detail="HermesAgent not found")
+def access_qagent(user: User = Depends(get_current_user)):
+    if not user.qagent_instance_id:
+        raise HTTPException(status_code=404, detail="QAgent not found")
 
     try:
-        result = clawmanager_client.generate_access_token(user.hermes_instance_id)
+        result = clawmanager_client.generate_access_token(user.qagent_instance_id)
         data = result["data"]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate access: {str(e)}")
