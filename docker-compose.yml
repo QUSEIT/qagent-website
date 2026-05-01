@@ -1,0 +1,42 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    image: qagent-backend:latest
+    container_name: qagent-backend
+    restart: unless-stopped
+    environment:
+      server_port: "8000"
+      database_url: "sqlite:////data/qagent.db"
+      jwt_secret: "${JWT_SECRET:-change-me-in-production}"
+      jwt_access_token_expire_minutes: "${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-60}"
+      jwt_refresh_token_expire_days: "${JWT_REFRESH_TOKEN_EXPIRE_DAYS:-7}"
+      clawmanager_base_url: "${CLAWMANAGER_BASE_URL:-http://localhost:9001}"
+      clawmanager_admin_username: "${CLAWMANAGER_ADMIN_USERNAME:-admin}"
+      clawmanager_admin_password: "${CLAWMANAGER_ADMIN_PASSWORD:-admin123}"
+    volumes:
+      - backend_data:/data
+    expose:
+      - "8000"
+    networks:
+      - qagent
+
+  frontend:
+    build:
+      context: .
+    image: qagent-frontend:latest
+    container_name: qagent-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    networks:
+      - qagent
+
+networks:
+  qagent:
+    driver: bridge
+
+volumes:
+  backend_data:
