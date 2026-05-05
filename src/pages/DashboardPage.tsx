@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  AlertTriangle, ChevronDown, Cpu, ExternalLink, Loader2, LogOut, Rocket, Server, Shield, Sparkles, Trash2, User, Zap,
+  AlertTriangle, ChevronDown, Cpu, ExternalLink, Key, LayoutDashboard, Loader2, LogOut, MessageCircle, Rocket, Server, Shield, Sparkles, Trash2, User, Zap,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
+import TokenConfigCard from "../components/TokenConfigCard";
+import ChannelConfigCard from "../components/ChannelConfigCard";
 
 interface QAgentStatus {
   has_instance: boolean;
@@ -19,6 +21,7 @@ interface ClawManagerInstanceStatus {
 }
 
 type InstanceType = "OpenClaw" | "HermesAgent";
+type ActiveTab = "qagent" | "token" | "channel";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -29,6 +32,12 @@ const statusLabelMap: Record<string, string> = {
   error: "异常",
   deleting: "删除中",
 };
+
+const SIDEBAR_ITEMS: { id: ActiveTab; label: string; icon: React.ElementType }[] = [
+  { id: "qagent", label: "QAgent管理", icon: LayoutDashboard },
+  { id: "token", label: "Token配置", icon: Key },
+  { id: "channel", label: "Channel配置", icon: MessageCircle },
+];
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -47,6 +56,7 @@ const DashboardPage: React.FC = () => {
     expires_at: string;
   } | null>(null);
   const [instanceStatus, setInstanceStatus] = useState<ClawManagerInstanceStatus | null>(null);
+  const [activeTab, setActiveTab] = useState<ActiveTab>("qagent");
 
   useEffect(() => {
     fetchStatus();
@@ -183,261 +193,318 @@ const DashboardPage: React.FC = () => {
         </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm"
-          >
-            {error}
-          </motion.div>
-        )}
-
-        {/* Welcome */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
-        >
-          <h1 className="text-3xl font-bold text-white mb-2">
-            欢迎回来，{user?.username}
-          </h1>
-          <p className="text-slate-400">
-            {status?.has_instance
-              ? instanceStatus?.status === "running"
-                ? "您的 QAgent AI 助理已就绪"
-                : `您的 QAgent AI 助理正在准备中（${statusLabelMap[instanceStatus?.status || "creating"] || "准备中"}）`
-              : "您还没有开通 QAgent AI 助理，点击下方按钮立即开通"}
-          </p>
-        </motion.div>
-
-        {!status?.has_instance ? (
-          /* Create Form */
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center">
-                  <Rocket className="w-6 h-6 text-amber-400" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">开通我的QAgent</h2>
-                  <p className="text-slate-400 text-sm">每人限开通一个 AI 助理</p>
-                </div>
-              </div>
-
-              <form onSubmit={handleCreate} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
-                    实例名称
-                  </label>
-                  <input
-                    type="text"
-                    value={instanceName}
-                    onChange={(e) => setInstanceName(e.target.value)}
-                    required
-                    minLength={3}
-                    maxLength={50}
-                    className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
-                    实例类型
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {(["OpenClaw", "HermesAgent"] as InstanceType[]).map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setInstanceType(type)}
-                        className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all ${
-                          instanceType === type
-                            ? "border-amber-500 bg-amber-500/10 text-amber-400"
-                            : "border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600"
-                        }`}
-                      >
-                        {type}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
+      <div className="flex min-h-[calc(100vh-4rem)]">
+        {/* Sidebar */}
+        <aside className="w-64 shrink-0 bg-slate-900/50 border-r border-slate-800 py-6 px-3">
+          <nav className="space-y-1">
+            {SIDEBAR_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              const disabled = !status?.has_instance && item.id !== "qagent";
+              return (
                 <button
-                  type="button"
-                  onClick={() => setShowConfig(!showConfig)}
-                  className="flex items-center justify-between w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-300 hover:border-slate-600 transition-all"
+                  key={item.id}
+                  onClick={() => !disabled && setActiveTab(item.id)}
+                  disabled={disabled}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors focus:!outline-none focus-visible:!outline-none active:!outline-none focus:!ring-0 focus-visible:!ring-0 border ${
+                    isActive
+                      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                      : disabled
+                      ? "text-slate-600 cursor-not-allowed border-transparent"
+                      : "text-slate-400 hover:bg-slate-800 hover:text-slate-200 border-transparent"
+                  }`}
                 >
-                  <span className="text-sm font-medium">助理配置</span>
-                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showConfig ? "rotate-180" : ""}`} />
+                  <Icon className="w-5 h-5" />
+                  {item.label}
                 </button>
+              );
+            })}
+          </nav>
+        </aside>
 
-                {showConfig && (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Cpu className="w-4 h-4 text-amber-400" />
-                          <span className="text-slate-300 text-sm font-medium">CPU</span>
-                        </div>
-                        <p className="text-white text-lg font-bold">1 核</p>
-                      </div>
-                      <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Zap className="w-4 h-4 text-blue-400" />
-                          <span className="text-slate-300 text-sm font-medium">内存</span>
-                        </div>
-                        <p className="text-white text-lg font-bold">2 GB</p>
-                      </div>
-                      <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Server className="w-4 h-4 text-green-400" />
-                          <span className="text-slate-300 text-sm font-medium">磁盘</span>
-                        </div>
-                        <p className="text-white text-lg font-bold">20 GB</p>
-                      </div>
-                    </div>
+        {/* Main Content */}
+        <main className="flex-1 px-8 py-8">
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm"
+            >
+              {error}
+            </motion.div>
+          )}
 
-                    <div className="flex items-center gap-2 text-slate-400 text-sm">
-                      <Shield className="w-4 h-4 text-green-400" />
-                      <span>系统：Ubuntu 22.04 | 类型：{status?.instance_type || instanceType}</span>
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={isCreating}
-                  className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:shadow-xl hover:shadow-amber-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isCreating ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      创建中...
-                    </>
-                  ) : (
-                    <>
-                      <Rocket className="w-5 h-5" />
-                      立即开通
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
-          </motion.div>
-        ) : (
-          /* Management Panel */
+          {/* Welcome */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
           >
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${instanceStatus?.status === "running" ? "bg-green-500/10" : "bg-amber-500/10"}`}>
-                  {instanceStatus?.status === "running" ? (
-                    <Sparkles className="w-6 h-6 text-green-400" />
-                  ) : (
-                    <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
-                  )}
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">QAgent 管理</h2>
-                  <p className="text-slate-400 text-sm">实例 ID: {status.instance_id}</p>
-                </div>
-              </div>
+            <h1 className="text-3xl font-bold text-white mb-2">
+              欢迎回来，{user?.username}
+            </h1>
+            <p className="text-slate-400">
+              {status?.has_instance
+                ? instanceStatus?.status === "running"
+                  ? "您的 QAgent AI 助理已就绪"
+                  : `您的 QAgent AI 助理正在准备中（${statusLabelMap[instanceStatus?.status || "creating"] || "准备中"}）`
+                : "您还没有开通 QAgent AI 助理，点击下方按钮立即开通"}
+            </p>
+          </motion.div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Cpu className="w-4 h-4 text-amber-400" />
-                    <span className="text-slate-300 text-sm font-medium">CPU</span>
-                  </div>
-                  <p className="text-white text-lg font-bold">1 核</p>
-                </div>
-                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="w-4 h-4 text-blue-400" />
-                    <span className="text-slate-300 text-sm font-medium">内存</span>
-                  </div>
-                  <p className="text-white text-lg font-bold">2 GB</p>
-                </div>
-                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Server className="w-4 h-4 text-green-400" />
-                    <span className="text-slate-300 text-sm font-medium">磁盘</span>
-                  </div>
-                  <p className="text-white text-lg font-bold">20 GB</p>
-                </div>
-              </div>
-
-              {instanceStatus?.status && instanceStatus.status !== "running" && (
-                <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
-                  <div className="flex items-center gap-2 text-amber-400 text-sm">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>实例状态：{statusLabelMap[instanceStatus.status] || instanceStatus.status}</span>
-                  </div>
-                  {instanceStatus.pod_status && (
-                    <p className="text-slate-500 text-xs mt-1 ml-6">Pod 状态：{instanceStatus.pod_status}</p>
-                  )}
-                </div>
-              )}
-
-              <button
-                onClick={handleAccess}
-                disabled={instanceStatus?.status !== "running"}
-                className={`w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                  instanceStatus?.status === "running"
-                    ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-xl hover:shadow-green-500/30"
-                    : "bg-slate-700 text-slate-400 cursor-not-allowed"
-                }`}
-              >
-                {instanceStatus?.status === "running" ? (
-                  <>
-                    <ExternalLink className="w-5 h-5" />
-                    打开 AI 助理系统
-                  </>
-                ) : (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    准备中...
-                  </>
-                )}
-              </button>
-
-              {accessInfo && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-4 p-4 bg-slate-800/50 border border-slate-700 rounded-xl"
-                >
-                  <p className="text-slate-400 text-sm mb-1">访问链接已生成</p>
-                  <p className="text-slate-500 text-xs">过期时间: {new Date(accessInfo.expires_at).toLocaleString()}</p>
-                </motion.div>
-              )}
-
-              <div className="mt-6 pt-6 border-t border-slate-800">
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  disabled={isDeleting}
-                  className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 text-red-400 rounded-xl font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  关闭实例
-                </button>
-                <p className="text-slate-500 text-xs text-center mt-2">
-                  关闭后将停止并删除当前实例，此操作不可撤销
+          {!status?.has_instance && activeTab !== "qagent" ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center">
+                <Rocket className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-white mb-2">请先开通 QAgent 实例</h3>
+                <p className="text-slate-400 text-sm mb-6">
+                  开通实例后即可配置 {SIDEBAR_ITEMS.find((i) => i.id === activeTab)?.label}
                 </p>
+                <button
+                  onClick={() => setActiveTab("qagent")}
+                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium transition-all"
+                >
+                  去开通
+                </button>
               </div>
-            </div>
-          </motion.div>
-        )}
+            </motion.div>
+          ) : activeTab === "qagent" ? (
+            !status?.has_instance ? (
+              /* Create Form */
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+              >
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center">
+                      <Rocket className="w-6 h-6 text-amber-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">开通我的QAgent</h2>
+                      <p className="text-slate-400 text-sm">每人限开通一个 AI 助理</p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleCreate} className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        实例名称
+                      </label>
+                      <input
+                        type="text"
+                        value={instanceName}
+                        onChange={(e) => setInstanceName(e.target.value)}
+                        required
+                        minLength={3}
+                        maxLength={50}
+                        className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        实例类型
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {(["OpenClaw", "HermesAgent"] as InstanceType[]).map((type) => (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => setInstanceType(type)}
+                            className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all ${
+                              instanceType === type
+                                ? "border-amber-500 bg-amber-500/10 text-amber-400"
+                                : "border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600"
+                            }`}
+                          >
+                            {type}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowConfig(!showConfig)}
+                      className="flex items-center justify-between w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-300 hover:border-slate-600 transition-all"
+                    >
+                      <span className="text-sm font-medium">助理配置</span>
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showConfig ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {showConfig && (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Cpu className="w-4 h-4 text-amber-400" />
+                              <span className="text-slate-300 text-sm font-medium">CPU</span>
+                            </div>
+                            <p className="text-white text-lg font-bold">1 核</p>
+                          </div>
+                          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Zap className="w-4 h-4 text-blue-400" />
+                              <span className="text-slate-300 text-sm font-medium">内存</span>
+                            </div>
+                            <p className="text-white text-lg font-bold">2 GB</p>
+                          </div>
+                          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Server className="w-4 h-4 text-green-400" />
+                              <span className="text-slate-300 text-sm font-medium">磁盘</span>
+                            </div>
+                            <p className="text-white text-lg font-bold">20 GB</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-slate-400 text-sm">
+                          <Shield className="w-4 h-4 text-green-400" />
+                          <span>系统：Ubuntu 22.04 | 类型：{status?.instance_type || instanceType}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isCreating}
+                      className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:shadow-xl hover:shadow-amber-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isCreating ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          创建中...
+                        </>
+                      ) : (
+                        <>
+                          <Rocket className="w-5 h-5" />
+                          立即开通
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              </motion.div>
+            ) : (
+              /* Management Panel */
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+              >
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${instanceStatus?.status === "running" ? "bg-green-500/10" : "bg-amber-500/10"}`}>
+                      {instanceStatus?.status === "running" ? (
+                        <Sparkles className="w-6 h-6 text-green-400" />
+                      ) : (
+                        <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
+                      )}
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">QAgent 管理</h2>
+                      <p className="text-slate-400 text-sm">实例 ID: {status.instance_id}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                    <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Cpu className="w-4 h-4 text-amber-400" />
+                        <span className="text-slate-300 text-sm font-medium">CPU</span>
+                      </div>
+                      <p className="text-white text-lg font-bold">1 核</p>
+                    </div>
+                    <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Zap className="w-4 h-4 text-blue-400" />
+                        <span className="text-slate-300 text-sm font-medium">内存</span>
+                      </div>
+                      <p className="text-white text-lg font-bold">2 GB</p>
+                    </div>
+                    <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Server className="w-4 h-4 text-green-400" />
+                        <span className="text-slate-300 text-sm font-medium">磁盘</span>
+                      </div>
+                      <p className="text-white text-lg font-bold">20 GB</p>
+                    </div>
+                  </div>
+
+                  {instanceStatus?.status && instanceStatus.status !== "running" && (
+                    <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                      <div className="flex items-center gap-2 text-amber-400 text-sm">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>实例状态：{statusLabelMap[instanceStatus.status] || instanceStatus.status}</span>
+                      </div>
+                      {instanceStatus.pod_status && (
+                        <p className="text-slate-500 text-xs mt-1 ml-6">Pod 状态：{instanceStatus.pod_status}</p>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleAccess}
+                    disabled={instanceStatus?.status !== "running"}
+                    className={`w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      instanceStatus?.status === "running"
+                        ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-xl hover:shadow-green-500/30"
+                        : "bg-slate-700 text-slate-400 cursor-not-allowed"
+                    }`}
+                  >
+                    {instanceStatus?.status === "running" ? (
+                      <>
+                        <ExternalLink className="w-5 h-5" />
+                        打开 AI 助理系统
+                      </>
+                    ) : (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        准备中...
+                      </>
+                    )}
+                  </button>
+
+                  {accessInfo && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-4 p-4 bg-slate-800/50 border border-slate-700 rounded-xl"
+                    >
+                      <p className="text-slate-400 text-sm mb-1">访问链接已生成</p>
+                      <p className="text-slate-500 text-xs">过期时间: {new Date(accessInfo.expires_at).toLocaleString()}</p>
+                    </motion.div>
+                  )}
+
+                  <div className="mt-6 pt-6 border-t border-slate-800">
+                    <button
+                      onClick={() => setShowDeleteConfirm(true)}
+                      disabled={isDeleting}
+                      className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 text-red-400 rounded-xl font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      关闭实例
+                    </button>
+                    <p className="text-slate-500 text-xs text-center mt-2">
+                      关闭后将停止并删除当前实例，此操作不可撤销
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )
+          ) : activeTab === "token" ? (
+            <TokenConfigCard />
+          ) : (
+            <ChannelConfigCard />
+          )}
+        </main>
       </div>
 
       {showDeleteConfirm && (
