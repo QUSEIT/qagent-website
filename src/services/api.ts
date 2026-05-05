@@ -1,6 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
-const API_BASE = (window as any).__API_URL__ || process.env.VITE_API_URL || "/api";
+const API_BASE = (window as any).__API_URL__ || process.env.API_BASE_URL || "/api";
 
 export const api = axios.create({
   baseURL: API_BASE,

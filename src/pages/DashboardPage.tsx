@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ChevronDown, Cpu, ExternalLink, LogOut, Rocket, Server, Shield, Sparkles, User, Zap,
+  AlertTriangle, ChevronDown, Cpu, ExternalLink, LogOut, Rocket, Server, Shield, Sparkles, Trash2, User, Zap,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
 
-interface HermesStatus {
+interface QAgentStatus {
   has_instance: boolean;
   instance_id: number | null;
   instance_type?: string;
@@ -18,9 +18,11 @@ type InstanceType = "OpenClaw" | "HermesAgent";
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout, refreshUser } = useAuth();
-  const [status, setStatus] = useState<HermesStatus | null>(null);
+  const [status, setStatus] = useState<QAgentStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [instanceName, setInstanceName] = useState("我的 QAgent");
   const [instanceType, setInstanceType] = useState<InstanceType>("OpenClaw");
   const [showConfig, setShowConfig] = useState(false);
@@ -69,6 +71,22 @@ const DashboardPage: React.FC = () => {
       window.open(response.data.proxy_url, "_blank");
     } catch (err: any) {
       setError(err.response?.data?.detail || "获取访问链接失败");
+    }
+  };
+
+  const handleDelete = async () => {
+    setError("");
+    setIsDeleting(true);
+    try {
+      await api.delete("/qagent/instance");
+      setAccessInfo(null);
+      setShowDeleteConfirm(false);
+      await refreshUser();
+      await fetchStatus();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "关闭实例失败，请重试");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -216,14 +234,14 @@ const DashboardPage: React.FC = () => {
                           <Cpu className="w-4 h-4 text-amber-400" />
                           <span className="text-slate-300 text-sm font-medium">CPU</span>
                         </div>
-                        <p className="text-white text-lg font-bold">2 核</p>
+                        <p className="text-white text-lg font-bold">1 核</p>
                       </div>
                       <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <Zap className="w-4 h-4 text-blue-400" />
                           <span className="text-slate-300 text-sm font-medium">内存</span>
                         </div>
-                        <p className="text-white text-lg font-bold">4 GB</p>
+                        <p className="text-white text-lg font-bold">2 GB</p>
                       </div>
                       <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                         <div className="flex items-center gap-2 mb-2">
@@ -285,14 +303,14 @@ const DashboardPage: React.FC = () => {
                     <Cpu className="w-4 h-4 text-amber-400" />
                     <span className="text-slate-300 text-sm font-medium">CPU</span>
                   </div>
-                  <p className="text-white text-lg font-bold">2 核</p>
+                  <p className="text-white text-lg font-bold">1 核</p>
                 </div>
                 <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Zap className="w-4 h-4 text-blue-400" />
                     <span className="text-slate-300 text-sm font-medium">内存</span>
                   </div>
-                  <p className="text-white text-lg font-bold">4 GB</p>
+                  <p className="text-white text-lg font-bold">2 GB</p>
                 </div>
                 <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
@@ -321,10 +339,79 @@ const DashboardPage: React.FC = () => {
                   <p className="text-slate-500 text-xs">过期时间: {new Date(accessInfo.expires_at).toLocaleString()}</p>
                 </motion.div>
               )}
+
+              <div className="mt-6 pt-6 border-t border-slate-800">
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={isDeleting}
+                  className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 text-red-400 rounded-xl font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  关闭实例
+                </button>
+                <p className="text-slate-500 text-xs text-center mt-2">
+                  关闭后将停止并删除当前实例，此操作不可撤销
+                </p>
+              </div>
             </div>
           </motion.div>
         )}
       </div>
+
+      {showDeleteConfirm && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+          onClick={() => !isDeleting && setShowDeleteConfirm(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-4 mb-5">
+              <div className="w-10 h-10 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white mb-1">确认关闭实例？</h3>
+                <p className="text-slate-400 text-sm leading-relaxed">
+                  此操作将停止并删除您的 QAgent 实例（ID: {status?.instance_id}），实例中的数据将无法恢复。关闭后您可以重新开通新的实例。
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    关闭中...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    确认关闭
+                  </>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 };

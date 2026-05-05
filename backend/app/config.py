@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 7
 
-    clawmanager_base_url: str = "http://localhost:9001"
+    clawmanager_base_url: str = "http://localhost:30332"
     clawmanager_admin_username: str = "admin"
     clawmanager_admin_password: str = "admin123"
 

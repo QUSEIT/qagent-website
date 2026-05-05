@@ -38,7 +38,7 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 
-class HermesStatus(BaseModel):
+class QAgentStatus(BaseModel):
     has_instance: bool
     instance_id: Optional[int] = None
     instance_type: Optional[str] = None
@@ -49,7 +49,11 @@ class QAgentCreateResponse(BaseModel):
     message: str
 
 
-class HermesAccessResponse(BaseModel):
+class QAgentDeleteResponse(BaseModel):
+    message: str
+
+
+class QAgentAccessResponse(BaseModel):
     token: str
     access_url: str
     proxy_url: str

@@ -5,7 +5,7 @@ export interface User {
   id: number;
   email: string;
   username: string;
-  hermes_instance_id: number | null;
+  qagent_instance_id: number | null;
   created_at: string;
 }
 

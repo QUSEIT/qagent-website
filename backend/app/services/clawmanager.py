@@ -1,8 +1,19 @@
 import httpx
+import logging
 import time
 from typing import Optional, Dict, Any
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
+
+
+class ClawManagerError(RuntimeError):
+    def __init__(self, status_code: int, detail: str, method: str = "", path: str = ""):
+        prefix = f"{method} {path} -> " if method or path else ""
+        super().__init__(f"{prefix}{status_code}: {detail}")
+        self.status_code = status_code
+        self.detail = detail
 
 
 class ClawManagerClient:
@@ -13,6 +24,7 @@ class ClawManagerClient:
         self._access_token: Optional[str] = None
         self._refresh_token: Optional[str] = None
         self._token_expires_at: float = 0
+        logger.info("ClawManagerClient initialized base_url=%s", self.base_url)
 
     def _is_token_valid(self) -> bool:
         return self._access_token is not None and time.time() < self._token_expires_at - 60
@@ -80,7 +92,13 @@ class ClawManagerClient:
                 timeout=30,
                 **kwargs,
             )
-        resp.raise_for_status()
+        if resp.is_error:
+            try:
+                body = resp.json()
+                detail = body.get("error") or body.get("message") or resp.text
+            except Exception:
+                detail = resp.text
+            raise ClawManagerError(resp.status_code, detail, method, path)
         return resp.json()
 
     def create_instance(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -94,6 +112,12 @@ class ClawManagerClient:
 
     def start_instance(self, instance_id: int) -> Dict[str, Any]:
         return self._request("POST", f"/api/v1/instances/{instance_id}/start")
+
+    def stop_instance(self, instance_id: int) -> Dict[str, Any]:
+        return self._request("POST", f"/api/v1/instances/{instance_id}/stop")
+
+    def delete_instance(self, instance_id: int) -> Dict[str, Any]:
+        return self._request("DELETE", f"/api/v1/instances/{instance_id}")
 
     def get_instance_status(self, instance_id: int) -> Dict[str, Any]:
         return self._request("GET", f"/api/v1/instances/{instance_id}/status")
