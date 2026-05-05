@@ -58,3 +58,8 @@ class QAgentAccessResponse(BaseModel):
     access_url: str
     proxy_url: str
     expires_at: str
+
+
+class QAgentInstanceStatus(BaseModel):
+    status: str
+    pod_status: Optional[str] = None

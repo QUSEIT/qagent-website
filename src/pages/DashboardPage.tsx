@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  AlertTriangle, ChevronDown, Cpu, ExternalLink, LogOut, Rocket, Server, Shield, Sparkles, Trash2, User, Zap,
+  AlertTriangle, ChevronDown, Cpu, ExternalLink, Loader2, LogOut, Rocket, Server, Shield, Sparkles, Trash2, User, Zap,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
@@ -13,7 +13,22 @@ interface QAgentStatus {
   instance_type?: string;
 }
 
+interface ClawManagerInstanceStatus {
+  status: string;
+  pod_status?: string;
+}
+
 type InstanceType = "OpenClaw" | "HermesAgent";
+
+const POLL_INTERVAL_MS = 5000;
+
+const statusLabelMap: Record<string, string> = {
+  creating: "创建中",
+  running: "运行中",
+  stopped: "已停止",
+  error: "异常",
+  deleting: "删除中",
+};
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -31,10 +46,45 @@ const DashboardPage: React.FC = () => {
     proxy_url: string;
     expires_at: string;
   } | null>(null);
+  const [instanceStatus, setInstanceStatus] = useState<ClawManagerInstanceStatus | null>(null);
 
   useEffect(() => {
     fetchStatus();
   }, []);
+
+  useEffect(() => {
+    if (!status?.has_instance) {
+      setInstanceStatus(null);
+      return;
+    }
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const poll = async () => {
+      try {
+        const response = await api.get("/qagent/instance-status");
+        if (!cancelled) {
+          setInstanceStatus(response.data);
+          if (response.data.status !== "running") {
+            timer = setTimeout(poll, POLL_INTERVAL_MS);
+          }
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setError(err.response?.data?.detail || "获取实例状态失败");
+          timer = setTimeout(poll, POLL_INTERVAL_MS);
+        }
+      }
+    };
+
+    poll();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [status?.has_instance, status?.instance_id]);
 
   const fetchStatus = async () => {
     try {
@@ -156,7 +206,9 @@ const DashboardPage: React.FC = () => {
           </h1>
           <p className="text-slate-400">
             {status?.has_instance
-              ? "您的 QAgent AI 助理已就绪"
+              ? instanceStatus?.status === "running"
+                ? "您的 QAgent AI 助理已就绪"
+                : `您的 QAgent AI 助理正在准备中（${statusLabelMap[instanceStatus?.status || "creating"] || "准备中"}）`
               : "您还没有开通 QAgent AI 助理，点击下方按钮立即开通"}
           </p>
         </motion.div>
@@ -288,8 +340,12 @@ const DashboardPage: React.FC = () => {
           >
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-green-400" />
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${instanceStatus?.status === "running" ? "bg-green-500/10" : "bg-amber-500/10"}`}>
+                  {instanceStatus?.status === "running" ? (
+                    <Sparkles className="w-6 h-6 text-green-400" />
+                  ) : (
+                    <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
+                  )}
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">QAgent 管理</h2>
@@ -321,12 +377,38 @@ const DashboardPage: React.FC = () => {
                 </div>
               </div>
 
+              {instanceStatus?.status && instanceStatus.status !== "running" && (
+                <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                  <div className="flex items-center gap-2 text-amber-400 text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>实例状态：{statusLabelMap[instanceStatus.status] || instanceStatus.status}</span>
+                  </div>
+                  {instanceStatus.pod_status && (
+                    <p className="text-slate-500 text-xs mt-1 ml-6">Pod 状态：{instanceStatus.pod_status}</p>
+                  )}
+                </div>
+              )}
+
               <button
                 onClick={handleAccess}
-                className="w-full py-3.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold hover:shadow-xl hover:shadow-green-500/30 transition-all flex items-center justify-center gap-2"
+                disabled={instanceStatus?.status !== "running"}
+                className={`w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  instanceStatus?.status === "running"
+                    ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-xl hover:shadow-green-500/30"
+                    : "bg-slate-700 text-slate-400 cursor-not-allowed"
+                }`}
               >
-                <ExternalLink className="w-5 h-5" />
-                打开 AI 助理系统
+                {instanceStatus?.status === "running" ? (
+                  <>
+                    <ExternalLink className="w-5 h-5" />
+                    打开 AI 助理系统
+                  </>
+                ) : (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    准备中...
+                  </>
+                )}
               </button>
 
               {accessInfo && (

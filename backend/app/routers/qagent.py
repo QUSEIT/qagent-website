@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import User
-from app.schemas import QAgentStatus, QAgentCreateResponse, QAgentDeleteResponse, QAgentAccessResponse
+from app.schemas import QAgentStatus, QAgentCreateResponse, QAgentDeleteResponse, QAgentAccessResponse, QAgentInstanceStatus
 from app.services.clawmanager import clawmanager_client, ClawManagerError
 
 logger = logging.getLogger(__name__)
@@ -18,8 +18,6 @@ DEFAULT_QAGENT_CONFIG = {
     "cpu_cores": 1,
     "memory_gb": 2,
     "disk_gb": 20,
-    "os_type": "ubuntu",
-    "os_version": "22.04",
     "gpu_enabled": False,
     "gpu_count": 0,
 }
@@ -27,6 +25,11 @@ DEFAULT_QAGENT_CONFIG = {
 TYPE_MAP = {
     "OpenClaw": "openclaw",
     "HermesAgent": "hermes",
+}
+
+TYPE_OS_MAP = {
+    "OpenClaw": {"os_type": "openclaw", "os_version": "latest"},
+    "HermesAgent": {"os_type": "hermes", "os_version": "latest"},
 }
 
 
@@ -68,8 +71,10 @@ def create_qagent(
         raise HTTPException(status_code=400, detail="QAgent already exists")
 
     safe_name = _k8s_safe_name(name, fallback=f"qagent-{user.id}")
+    type_os = TYPE_OS_MAP.get(instance_type, {"os_type": "ubuntu", "os_version": "22.04"})
     payload = {
         **DEFAULT_QAGENT_CONFIG,
+        **type_os,
         "name": safe_name,
         "type": TYPE_MAP.get(instance_type, "openclaw"),
     }
@@ -92,6 +97,31 @@ def create_qagent(
     db.commit()
 
     return QAgentCreateResponse(instance_id=instance_id, message="QAgent created successfully")
+
+
+@router.get("/instance-status", response_model=QAgentInstanceStatus)
+def get_instance_status(user: User = Depends(get_current_user)):
+    if not user.qagent_instance_id:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+
+    try:
+        result = clawmanager_client.get_instance_status(user.qagent_instance_id)
+        instance_status = result["data"]["instance_status"]
+    except Exception as e:
+        logger.exception(
+            "ClawManager get_instance_status failed (base_url=%s, instance_id=%s)",
+            clawmanager_client.base_url,
+            user.qagent_instance_id,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get instance status: {type(e).__name__}: {e}",
+        )
+
+    return QAgentInstanceStatus(
+        status=instance_status["status"],
+        pod_status=instance_status.get("pod_status"),
+    )
 
 
 @router.post("/access", response_model=QAgentAccessResponse)
