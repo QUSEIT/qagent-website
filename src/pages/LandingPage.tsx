@@ -6,7 +6,7 @@ import {
   PenTool, Code, ChevronRight, ChevronLeft, Menu, X, Github, Twitter, Linkedin, Mail,
   Server, Box, Layers, Terminal, CheckCircle, ArrowRight, Sparkles,
   MessageSquare, FileText, Globe, Briefcase, Home, TrendingUp, Edit3,
-  Laptop, Search,
+  Laptop, Search, MapPin,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -89,7 +89,10 @@ const LandingPage: React.FC = () => {
                 收费模式
               </button>
               <button onClick={() => scrollToSection("showcase")} className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
-                场景示范
+                应用场景
+              </button>
+              <button onClick={() => scrollToSection("contact")} className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
+                联系我们
               </button>
             </div>
 
@@ -139,10 +142,12 @@ const LandingPage: React.FC = () => {
                   收费模式
                 </button>
                 <button onClick={() => scrollToSection("showcase")} className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
-                  场景示范
+                  应用场景
+                </button>
+                <button onClick={() => scrollToSection("contact")} className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
+                  联系我们
                 </button>
                 <button
-                  onClick={handleStart}
                   className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-medium"
                 >
                   {isAuthenticated ? "控制台" : "立即体验"}
@@ -205,7 +210,7 @@ const LandingPage: React.FC = () => {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="mt-20 lg:mt-32 mb-20"
           >
-            <div className="relative mx-auto max-w-5xl">
+            <div className="relative mx-auto max-w-6xl">
               <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl blur opacity-30" />
               <div className="relative bg-slate-900 rounded-2xl p-6 sm:p-8 border border-slate-800 overflow-hidden">
                 <div className="text-center mb-6">
@@ -394,13 +399,13 @@ const LandingPage: React.FC = () => {
                 icon: Download, color: "green", title: "社区支持",
                 desc: "适合个人爱好者与学习研究。基于开源版本自行部署，社区提供技术支持。",
                 points: ["开源版本完全免费", "社区论坛技术支持", "文档与教程支持"],
-                btn: "了解详情",
+                btn: "联系我们",
               },
               {
                 icon: Settings, color: "blue", title: "按需部署",
                 desc: "适合企业用户。由我们提供专业的私有化部署实施服务，支持单节点与多节点容器集群。",
                 points: ["专业团队部署实施", "集群高可用架构", "按需定制配置"],
-                btn: "获取方案",
+                btn: "联系我们",
               },
               {
                 icon: Layers, color: "red", title: "技能定制",
@@ -436,9 +441,19 @@ const LandingPage: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                  <button className={`w-full py-3 border border-${plan.color}-500 text-${plan.color}-400 rounded-lg font-medium hover:bg-${plan.color}-500 hover:text-${plan.color === "blue" ? "white" : "slate-950"} transition-all`}>
+                  <a href="#contact" className={`w-full py-3.5 px-6 rounded-xl border font-medium text-center transition-all flex items-center justify-center gap-2 ${
+                    plan.color === 'amber'
+                      ? 'border-amber-500 text-amber-400 hover:bg-amber-500 hover:text-slate-950'
+                      : plan.color === 'blue'
+                      ? 'border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white'
+                      : plan.color === 'green'
+                      ? 'border-green-500 text-green-400 hover:bg-green-500 hover:text-white'
+                      : plan.color === 'red'
+                      ? 'border-red-500 text-red-400 hover:bg-red-500 hover:text-white'
+                      : 'border-slate-500 text-slate-400 hover:bg-slate-500 hover:text-white'
+                  }`}>
                     {plan.btn}
-                  </button>
+                  </a>
                 </div>
               </motion.div>
             ))}
@@ -474,7 +489,7 @@ const LandingPage: React.FC = () => {
                 billing: "灵活定制",
                 desc: "开源版本，完全免费，自行部署，社区技术支持。",
                 points: ["开源版本完全免费", "社区论坛技术支持", "文档与教程支持"],
-                btn: "了解详情",
+                btn: "联系我们",
                 highlight: false,
               },
               {
@@ -482,7 +497,7 @@ const LandingPage: React.FC = () => {
                 price: "¥5,000", unit: "/ 节点", billing: "支持1-6容器",
                 desc: "专业私有化部署，按实际节点计费，享1年专业技术支持。",
                 points: ["系统部署与环境调优", "节点配置和技能组合", "交付培训与文档"],
-                btn: "了解详情",
+                btn: "联系我们",
                 highlight: false,
               },
               {
@@ -490,7 +505,7 @@ const LandingPage: React.FC = () => {
                 price: "¥12,000", unit: "起 / 年", billing: "按年订阅",
                 desc: "集群私有化部署，按节点角色与数量计费，享1年专业技术支持。",
                 points: ["专业私有化部署", "按实际节点计费", "1年专业技术支持"],
-                btn: "立即联系",
+                btn: "联系我们",
                 highlight: true,
               },
               {
@@ -498,7 +513,7 @@ const LandingPage: React.FC = () => {
                 price: "另行评估", unit: "", billing: "按需报价",
                 desc: "源码级定制开发，满足深度业务需求。",
                 points: ["深度需求调研", "源码级定制开发", "专属技术支持与交付"],
-                btn: "获取方案",
+                btn: "联系我们",
                 highlight: false,
               },
             ].map((plan, i) => (
@@ -538,9 +553,21 @@ const LandingPage: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                  <button className={`w-full py-3 rounded-lg font-medium transition-all ${plan.highlight ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg hover:shadow-amber-500/30' : `border border-${plan.color}-500 text-${plan.color}-400 hover:bg-${plan.color}-500 hover:text-${plan.color === "blue" ? "white" : "slate-950"}`}`}>
+                  <a href="#contact" className={`w-full py-3.5 px-6 rounded-xl font-medium text-center transition-all flex items-center justify-center gap-2 ${
+                    plan.highlight
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg hover:shadow-amber-500/30'
+                      : plan.color === 'amber'
+                      ? 'border border-amber-500 text-amber-400 hover:bg-amber-500 hover:text-slate-950'
+                      : plan.color === 'blue'
+                      ? 'border border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white'
+                      : plan.color === 'green'
+                      ? 'border border-green-500 text-green-400 hover:bg-green-500 hover:text-white'
+                      : plan.color === 'red'
+                      ? 'border border-red-500 text-red-400 hover:bg-red-500 hover:text-white'
+                      : 'border border-slate-500 text-slate-400 hover:bg-slate-500 hover:text-white'
+                  }`}>
                     {plan.btn}
-                  </button>
+                  </a>
                 </div>
               </motion.div>
             ))}
@@ -561,7 +588,7 @@ const LandingPage: React.FC = () => {
           >
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
               <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
-                场景示范
+                应用场景
               </span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
@@ -571,12 +598,10 @@ const LandingPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
             {[
-              { icon: Briefcase, color: "amber", title: "企业办公场景", metric: "效率提升 300%", desc: "在繁忙的办公环境中，QAgent成为您的智能秘书。自动整理会议纪要、安排日程提醒、处理邮件回复、管理待办事项。一位市场经理使用后，每日节省2小时行政时间，将精力集中在核心业务决策上。", points: ["语音录入自动生成会议纪要", "智能日程冲突检测与优化", "邮件自动分类与智能回复建议"] },
               { icon: Home, color: "blue", title: "学习辅导场景", metric: "学习效率提升 150%", desc: "老师通过QAgent为学生制定个性化学习计划，自动整理学习资料、生成知识框架图、监督学习进度。一位班主任使用后，班级平均成绩提升15%，教学效率显著提高。", points: ["智能生成个性化学习计划", "知识点自动梳理与思维导图", "作业批改与错题分析"] },
               { icon: TrendingUp, color: "green", title: "财务管理场景", metric: "报销效率提升 500%", desc: "月末报销不再头疼。QAgent自动识别发票信息、分类整理单据、生成报销明细表、计算金额汇总。一位销售代表使用后，原本需要半天整理的报销材料，现在5分钟完成。", points: ["发票自动识别与信息提取", "智能分类与报销单自动生成", "费用统计与预算跟踪"] },
               { icon: Edit3, color: "red", title: "内容创作场景", metric: "创作效率提升 400%", desc: "自媒体创作者使用QAgent进行选题调研、素材收集、内容撰写、多平台适配。一位科技博主使用后，原本一周的内容产出，现在一天即可完成，粉丝增长300%。", points: ["热点话题自动追踪与选题建议", "一键生成多平台适配内容", "文案润色与SEO优化"] },
-              { icon: Laptop, color: "indigo", title: "软件项目管理场景", metric: "产品迭代效率提升 10倍", desc: "开发者使用QAgent来管理Claude Code，文档编写、项目发布。一位全栈工程师使用后，项目交付周期缩短了80%，代码质量显著提升。", points: ["Claude Code项目管理", "文档自动编写与更新", "项目一键发布与部署"] },
-              { icon: Search, color: "purple", title: "研究分析场景", metric: "研究效率提升 350%", desc: "研究人员使用QAgent进行文献检索、资料整理、数据分析、报告撰写。一位研究生使用后，文献综述撰写时间从两周缩短至两天，研究效率大幅提升。", points: ["学术文献自动检索与摘要", "数据自动整理与可视化", "研究报告自动生成"] },
+              { icon: Laptop, color: "amber", title: "软件项目管理场景", metric: "产品迭代效率提升 10倍", desc: "开发者使用QAgent来管理Claude Code，文档编写、项目发布。一位全栈工程师使用后，项目交付周期缩短了80%，代码质量显著提升。", points: ["Claude Code项目管理", "文档自动编写与更新", "项目一键发布与部署"] },
             ].map((scene, i) => (
               <motion.div
                 key={scene.title}
@@ -622,15 +647,74 @@ const LandingPage: React.FC = () => {
                 <Users className="w-6 h-6 text-amber-400" />
                 <span className="text-slate-300">还有更多场景等待探索？</span>
               </div>
-              <button
-                onClick={handleStart}
-                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-medium hover:shadow-lg hover:shadow-amber-500/30 transition-all flex items-center gap-2"
-              >
+              <a href="#contact" className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-medium hover:shadow-lg hover:shadow-amber-500/30 transition-all flex items-center gap-2">
                 定制您的专属场景
                 <ChevronRight className="w-4 h-4" />
-              </button>
+              </a>
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section id="contact" className="py-20 lg:py-24 bg-slate-950 relative">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
+                联系我们
+              </span>
+            </h2>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="space-y-4"
+            >
+              <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex items-start gap-4">
+                <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center shrink-0">
+                  <MapPin className="w-6 h-6 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold mb-2">公司地址</h3>
+                  <p className="text-slate-400 text-sm">北京市海淀区永澄北路2号院1号楼一层A1839</p>
+                </div>
+              </div>
+              <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex items-start gap-4">
+                <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center shrink-0">
+                  <Mail className="w-6 h-6 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold mb-2">联系邮件</h3>
+                  <a href="mailto:ceo@quseit.com" className="text-amber-400 text-sm hover:underline">ceo@quseit.com</a>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="flex flex-col items-center justify-center"
+            >
+              <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center mb-4">
+                <MessageSquare className="w-6 h-6 text-amber-400" />
+              </div>
+              <h3 className="text-white font-semibold mb-4">联系微信</h3>
+              <img src="/qrcode.jpg" alt="联系微信二维码" className="w-28 h-28 rounded-xl object-cover" />
+            </motion.div>
+          </div>
         </div>
       </section>
 
@@ -662,10 +746,10 @@ const LandingPage: React.FC = () => {
               >
                 立即体验
               </button>
-              <button className="px-10 py-4 border border-slate-600 text-slate-300 rounded-full font-semibold text-lg hover:border-amber-500 hover:text-amber-400 transition-all flex items-center gap-2">
+              <a href="#contact" className="px-10 py-4 border border-slate-600 text-slate-300 rounded-full font-semibold text-lg hover:border-amber-500 hover:text-amber-400 transition-all flex items-center gap-2">
                 <Mail className="w-5 h-5" />
-                获取方案
-              </button>
+                联系我们
+              </a>
             </div>
           </motion.div>
         </div>
@@ -706,7 +790,7 @@ const LandingPage: React.FC = () => {
                 <li><button onClick={() => scrollToSection("principle")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">技术原理</button></li>
                 <li><button onClick={() => scrollToSection("deployment")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">服务方式</button></li>
                 <li><button onClick={() => scrollToSection("pricing")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">收费模式</button></li>
-                <li><button onClick={() => scrollToSection("showcase")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">场景示范</button></li>
+                <li><button onClick={() => scrollToSection("contact")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">联系我们</button></li>
               </ul>
             </div>
 
@@ -723,7 +807,7 @@ const LandingPage: React.FC = () => {
             <div>
               <h4 className="text-white font-semibold mb-4">联系我们</h4>
               <ul className="space-y-2">
-                <li><a href="#" className="text-slate-400 hover:text-amber-400 text-sm transition-colors">商务合作</a></li>
+                <li><a href="#contact" className="text-slate-400 hover:text-amber-400 text-sm transition-colors">联系我们</a></li>
                 <li><a href="#" className="text-slate-400 hover:text-amber-400 text-sm transition-colors">技术支持</a></li>
                 <li><a href="#" className="text-slate-400 hover:text-amber-400 text-sm transition-colors">加入我们</a></li>
               </ul>
