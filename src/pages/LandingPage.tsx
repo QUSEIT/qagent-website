@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Cpu, Cloud, Shield, Zap, Download, Settings, Users, BookOpen, Coins,
-  PenTool, Code, ChevronRight, Menu, X, Github, Twitter, Linkedin, Mail,
+  PenTool, Code, ChevronRight, ChevronLeft, Menu, X, Github, Twitter, Linkedin, Mail,
   Server, Box, Layers, Terminal, CheckCircle, ArrowRight, Sparkles,
   MessageSquare, FileText, Globe, Briefcase, Home, TrendingUp, Edit3,
   Laptop, Search,
@@ -13,8 +13,18 @@ import { useAuth } from "../contexts/AuthContext";
 const LandingPage: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [agentIndex, setAgentIndex] = useState(0);
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+
+  const agents = [
+    { name: "文案Q姐", role: "内容创作", color: "pink" },
+    { name: "财务Q爷", role: "财务管理", color: "green" },
+    { name: "工程Q哥", role: "技术编程", color: "blue" },
+    { name: "教务阿Q", role: "学习辅导", color: "amber" },
+  ];
+  const visibleCount = 4;
+  const totalPages = Math.ceil(agents.length / visibleCount);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -64,16 +74,13 @@ const LandingPage: React.FC = () => {
                 </svg>
               </div>
               <div className="flex flex-col">
-                <span className="text-lg font-bold text-white">Q Agent</span>
+                <span className="text-lg font-bold text-white">QAgent</span>
               </div>
             </div>
 
             <div className="hidden lg:flex items-center gap-8">
               <button onClick={() => scrollToSection("principle")} className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
-                服务原理
-              </button>
-              <button onClick={() => scrollToSection("features")} className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
-                服务特点
+                技术原理
               </button>
               <button onClick={() => scrollToSection("deployment")} className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
                 服务方式
@@ -123,10 +130,7 @@ const LandingPage: React.FC = () => {
             >
               <div className="px-4 py-4 space-y-3">
                 <button onClick={() => scrollToSection("principle")} className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
-                  服务原理
-                </button>
-                <button onClick={() => scrollToSection("features")} className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
-                  服务特点
+                  技术原理
                 </button>
                 <button onClick={() => scrollToSection("deployment")} className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
                   服务方式
@@ -166,22 +170,18 @@ const LandingPage: React.FC = () => {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/30 rounded-full mb-8">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span className="text-amber-400 text-sm font-medium">OpenClaw 企业级智能体服务</span>
+              <span className="text-amber-400 text-sm font-medium">构建OPC（一人公司）的技术基座</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mb-6">
               <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-transparent">
-                Q Agent
+                QAgent
               </span>
             </h1>
 
-            <p className="text-xl sm:text-2xl lg:text-3xl text-slate-300 mb-4 font-light">
-              极大释放AI潜力，而不是作为玩具
-            </p>
-
+            
             <p className="text-slate-400 max-w-2xl mx-auto mb-10 text-base sm:text-lg">
-              基于 OpenClaw 开源生态打造的企业级AI智能体服务平台，让AI从"会回答"走向"会执行"，
-              真正实现本地安全、微信远程、开箱即用的智能办公体验
+              基于包括OpenClaw/HermesAgent等开源生态，构建企业级AI智能体容器化方案，让初级智能体变为可靠、可协作、即开即用的数字员工。
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -189,13 +189,13 @@ const LandingPage: React.FC = () => {
                 onClick={handleStart}
                 className="group px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-semibold text-lg hover:shadow-xl hover:shadow-amber-500/30 transition-all flex items-center gap-2"
               >
-                免费体验
+                立即体验
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
-              <button className="px-8 py-4 border border-slate-600 text-slate-300 rounded-full font-semibold text-lg hover:border-amber-500 hover:text-amber-400 transition-all flex items-center gap-2">
+              <a href="https://github.com/QUSEIT/qagent-image" target="_blank" rel="noopener noreferrer" className="px-8 py-4 border border-slate-600 text-slate-300 rounded-full font-semibold text-lg hover:border-amber-500 hover:text-amber-400 transition-all flex items-center gap-2">
                 <Github className="w-5 h-5" />
                 查看源码
-              </button>
+              </a>
             </div>
           </motion.div>
 
@@ -203,40 +203,51 @@ const LandingPage: React.FC = () => {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="mt-16 lg:mt-24"
+            className="mt-20 lg:mt-32 mb-20"
           >
             <div className="relative mx-auto max-w-5xl">
               <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl blur opacity-30" />
               <div className="relative bg-slate-900 rounded-2xl p-6 sm:p-8 border border-slate-800 overflow-hidden">
                 <div className="text-center mb-6">
-                  <h3 className="text-xl font-semibold text-white mb-2">您的专属AI助手团队</h3>
-                  <p className="text-slate-400 text-sm">随时待命，可靠便捷，一键唤醒</p>
+                  <h3 className="text-xl font-semibold text-white mb-2">开箱即用的数字员工库</h3>
+                  <p className="text-slate-400 text-sm">点击查看ta如何工作</p>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    { name: "笔杆Q姐", role: "内容创作", color: "pink" },
-                    { name: "财神Q爹", role: "财务管理", color: "green" },
-                    { name: "开发Q哥", role: "技术编程", color: "blue" },
-                    { name: "助教阿Q", role: "学习辅导", color: "amber" },
-                  ].map((agent) => (
-                    <motion.div
-                      key={agent.name}
-                      whileHover={{ scale: 1.05, y: -5 }}
-                      className={`bg-slate-800/50 rounded-xl p-4 text-center border border-slate-700 hover:border-${agent.color}-500/50 transition-all cursor-pointer group`}
+                <div className="relative">
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setAgentIndex((prev) => (prev - 1 + totalPages) % totalPages)}
+                      className="shrink-0 w-10 h-10 rounded-full bg-slate-800 hover:bg-amber-500/20 hover:text-amber-400 border border-slate-700 flex items-center justify-center transition-all"
                     >
-                      <div className={`w-16 h-16 mx-auto mb-3 rounded-full overflow-hidden border-2 border-${agent.color}-400/50 group-hover:border-${agent.color}-400 group-hover:shadow-lg group-hover:shadow-${agent.color}-500/30 transition-all`}>
-                        <div className={`w-full h-full bg-${agent.color}-500/20 flex items-center justify-center`}>
-                          <span className={`text-${agent.color}-400 text-2xl font-bold`}>{agent.name[0]}</span>
-                        </div>
-                      </div>
-                      <p className="text-white font-medium text-sm">{agent.name}</p>
-                      <p className="text-slate-500 text-xs mt-1">{agent.role}</p>
-                      <div className="mt-2 flex items-center justify-center gap-1">
-                        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                        <span className="text-green-400 text-xs">待命</span>
-                      </div>
-                    </motion.div>
-                  ))}
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {agents.slice(agentIndex * visibleCount, agentIndex * visibleCount + visibleCount).map((agent) => (
+                        <motion.div
+                          key={agent.name}
+                          whileHover={{ scale: 1.05, y: -5 }}
+                          className={`bg-slate-800/50 rounded-xl p-4 text-center border border-slate-700 hover:border-${agent.color}-500/50 transition-all cursor-pointer group`}
+                        >
+                          <div className={`w-16 h-16 mx-auto mb-3 rounded-full overflow-hidden border-2 border-${agent.color}-400/50 group-hover:border-${agent.color}-400 group-hover:shadow-lg group-hover:shadow-${agent.color}-500/30 transition-all`}>
+                            <div className={`w-full h-full bg-${agent.color}-500/20 flex items-center justify-center`}>
+                              <span className={`text-${agent.color}-400 text-2xl font-bold`}>{agent.name[0]}</span>
+                            </div>
+                          </div>
+                          <p className="text-white font-medium text-sm">{agent.name}</p>
+                          <p className="text-slate-500 text-xs mt-1">{agent.role}</p>
+                          <div className="mt-2 flex items-center justify-center gap-1">
+                            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                            <span className="text-green-400 text-xs">待命</span>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setAgentIndex((prev) => (prev + 1) % totalPages)}
+                      className="shrink-0 w-10 h-10 rounded-full bg-slate-800 hover:bg-amber-500/20 hover:text-amber-400 border border-slate-700 flex items-center justify-center transition-all"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-6 flex items-center justify-center gap-2 text-slate-400 text-sm">
@@ -247,7 +258,7 @@ const LandingPage: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                  <span>4位助手已就绪，等待您的指令</span>
+                  <span>没有你需要的数字员工？→ 咨询新类型 ｜ 定制专属技能</span>
                 </div>
               </div>
             </div>
@@ -267,11 +278,11 @@ const LandingPage: React.FC = () => {
           >
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
               <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
-                服务原理
+                技术原理
               </span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-              基于容器化技术与开源生态，构建企业级AI智能体服务架构
+              基于开源软件生态，构建企业级AI智能体容器化架构
             </p>
           </motion.div>
 
@@ -285,8 +296,8 @@ const LandingPage: React.FC = () => {
             >
               {[
                 { icon: Box, title: "容器单体及集群技术", desc: "采用Docker容器化部署，支持单机运行与Kubernetes集群编排，实现弹性伸缩与高可用保障。每个Agent实例独立运行在隔离环境中，确保资源隔离与安全性。", color: "amber" },
-                { icon: Layers, title: "OpenClaw / Hermes Agent / Opencore 基座", desc: "基于OpenClaw开源框架构建，集成Hermes Agent智能调度引擎与Opencore核心运行时，提供完整的AI Agent能力栈，支持工具调用、技能管理、任务编排等核心功能。", color: "blue" },
-                { icon: Terminal, title: "AICoding 技术栈", desc: "集成主流国产大模型（Kimi、MiniMax、GLM、DeepSeek），支持自定义模型接入。内置5000+ Skills生态，覆盖代码生成、文档处理、数据分析等开发场景。", color: "green" },
+                { icon: Layers, title: "OpenClaw / Hermes Agent / OpenCode 基座", desc: "集成OpenClaw、Hermes Agent等主流智能体，融合OpenCode等AI编程引擎，让数字员工具备自主迭代与技能进化的能力。", color: "blue" },
+                { icon: Terminal, title: "精选专业技能，开箱即用", desc: "内置 SkillHub，精选应用市场与自研技能，覆盖文案创作、社媒发布、数据抓取、文档处理、数据分析等核心工作场景。", color: "green" },
               ].map((item) => (
                 <div key={item.title} className={`bg-slate-900/50 border border-slate-800 rounded-2xl p-6 hover:border-${item.color}-500/50 transition-colors`}>
                   <div className="flex items-start gap-4">
@@ -318,8 +329,8 @@ const LandingPage: React.FC = () => {
                 <div className="space-y-4">
                   {[
                     { icon: MessageSquare, title: "用户交互层", desc: "微信 / QQ / Web / API", color: "amber" },
-                    { icon: Server, title: "控制面 (Control Plane)", desc: "Hermes Agent 调度引擎", color: "blue" },
-                    { icon: Cpu, title: "执行面 (Execution Plane)", desc: "OpenClaw / Opencore 运行时", color: "green" },
+                    { icon: Server, title: "控制面 (Control Plane)", desc: "QAgent编排引擎", color: "blue" },
+                    { icon: Cpu, title: "执行面 (Execution Plane)", desc: "OpenClaw / Hermes Agent / OpenCode 运行时", color: "green" },
                   ].map((layer, i, arr) => (
                     <div key={layer.title}>
                       <div className="flex items-center gap-4 p-4 bg-slate-800/50 rounded-xl">
@@ -357,75 +368,8 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 lg:py-32 bg-slate-900/50 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
-                服务特点
-              </span>
-            </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-              三大核心优势，让AI智能体真正服务于企业生产力
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            {[
-              {
-                icon: Github, color: "amber", title: "技术开源",
-                desc: "基于OpenClaw开源生态构建，代码透明可控。支持ClawHub官方技能市场与GitHub开源生态，5000+ Skills随取随用，企业可自主定制开发，无供应商锁定风险。",
-                points: ["开源代码，自主可控", "丰富技能生态", "支持自定义扩展"],
-              },
-              {
-                icon: Zap, color: "blue", title: "按需获取",
-                desc: "灵活的部署与计费模式，从个人开发者到大型企业均可按需选择。支持本地部署、私有云、公有云多种形态，资源弹性伸缩，成本可控。",
-                points: ["多种部署形态", "弹性资源伸缩", "成本优化可控"],
-              },
-              {
-                icon: Sparkles, color: "green", title: "AI潜力释放",
-                desc: "不只是聊天对话，而是真正能执行任务的AI智能体。支持文件处理、浏览器操作、代码编写、定时任务等复杂场景，让AI从“会回答”走向“会执行”。",
-                points: ["任务自动执行", "多场景覆盖", "持续记忆学习"],
-              },
-            ].map((feature, i) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: i * 0.1 }}
-                className="group"
-              >
-                <div className={`h-full bg-slate-900 border border-slate-800 rounded-2xl p-8 hover:border-${feature.color}-500/50 transition-all hover:shadow-xl hover:shadow-${feature.color}-500/10`}>
-                  <div className={`w-14 h-14 bg-gradient-to-br from-${feature.color}-500 to-${feature.color === "blue" ? "blue-600" : feature.color === "green" ? "emerald-600" : "orange-500"} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                    <feature.icon className="w-7 h-7 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-4">{feature.title}</h3>
-                  <p className="text-slate-400 leading-relaxed">{feature.desc}</p>
-                  <ul className="mt-6 space-y-2">
-                    {feature.points.map((p) => (
-                      <li key={p} className="flex items-center gap-2 text-slate-300 text-sm">
-                        <CheckCircle className={`w-4 h-4 text-${feature.color}-400`} />
-                        {p}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Deployment Section */}
-      <section id="deployment" className="py-20 lg:py-32 bg-slate-950 relative">
+      <section id="deployment" className="py-20 lg:py-32 bg-slate-900 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -440,28 +384,28 @@ const LandingPage: React.FC = () => {
               </span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-              三种服务模式，灵活匹配您的业务需求
+              社区支持 / 按需部署 / 技能定制，灵活匹配您的数字员工建设需求
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
             {[
               {
-                icon: Download, color: "amber", title: "自行部署", badge: "推荐",
-                desc: "适合有技术能力的个人与团队。提供完整安装包与文档，自主完成部署，数据完全本地掌控。",
-                points: ["一键安装，零配置", "本地运行，数据安全", "免费基础功能"],
-                btn: "免费体验",
+                icon: Download, color: "green", title: "社区支持",
+                desc: "适合个人爱好者与学习研究。基于开源版本自行部署，社区提供技术支持。",
+                points: ["开源版本完全免费", "社区论坛技术支持", "文档与教程支持"],
+                btn: "了解详情",
               },
               {
-                icon: Settings, color: "blue", title: "定制部署",
-                desc: "适合中大型企业。由我们提供私有化部署实施服务，支持多节点集群与高可用架构。",
-                points: ["专业团队上门部署", "集群高可用架构", "按需定制配置"],
-                btn: "联系销售",
+                icon: Settings, color: "blue", title: "按需部署",
+                desc: "适合企业用户。由我们提供专业的私有化部署实施服务，支持单节点与多节点容器集群。",
+                points: ["专业团队部署实施", "集群高可用架构", "按需定制配置"],
+                btn: "获取方案",
               },
               {
-                icon: Layers, color: "green", title: "插件定制",
-                desc: "针对特殊业务场景的个性化功能开发。基于现有能力进行深度定制，满足独特业务需求。",
-                points: ["深度功能定制", "专属接口开发", "源码级交付"],
+                icon: Layers, color: "red", title: "技能定制",
+                desc: "针对特殊业务场景的个性化数字员工技能开发。基于现有能力进行深度定制，满足独特业务需求。",
+                points: ["深度技能定制", "专属工作流编排", "源码级交付"],
                 btn: "需求评估",
               },
             ].map((plan, i) => (
@@ -503,7 +447,7 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 lg:py-32 bg-slate-900 relative">
+      <section id="pricing" className="py-20 lg:py-32 bg-slate-950 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -518,42 +462,43 @@ const LandingPage: React.FC = () => {
               </span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-              一次性部署与年度订阅相结合，灵活匹配您的投入节奏
+              从免费到企业级，按需选择，灵活付费
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 mb-12">
             {[
               {
-                icon: Server, color: "blue", title: "部署服务费",
-                price: "¥5,000", unit: "/ 节点", billing: "一次性费用",
-                desc: "由我们提供专业的私有化部署实施服务，按实际部署的节点数量计费。",
-                points: ["现场部署与环境调优", "集群配置与性能优化", "交付培训与文档"],
+                icon: Download, color: "green", title: "社区版本",
+                price: "免费", unit: "",
+                billing: "灵活定制",
+                desc: "开源版本，完全免费，自行部署，社区技术支持。",
+                points: ["开源版本完全免费", "社区论坛技术支持", "文档与教程支持"],
                 btn: "了解详情",
                 highlight: false,
               },
               {
-                icon: Shield, color: "amber", title: "控制节点订阅", badge: "推荐",
-                price: "¥12,000", unit: "/ 年 / Agents控制节点", billing: "按年订阅",
-                desc: "集群管理中心，负责任务调度、策略管控与全局状态管理。每个集群至少需要一个控制节点。",
-                points: ["集群调度与任务分发", "策略管控与权限管理", "全局状态监控", "版本升级与技术支持"],
-                btn: "立即订阅",
-                highlight: true,
-              },
-              {
-                icon: Zap, color: "orange", title: "工作节点订阅",
-                price: "¥8,000", unit: "/ 年 / Agent独立工作节点", billing: "按年订阅",
-                desc: "独立执行任务的智能体节点，承担实际业务处理与数据运算工作，可按需弹性扩展。",
-                points: ["独立业务处理执行", "数据运算与结果输出", "弹性扩展按需增减", "OpenSkill技能市场全量解锁"],
-                btn: "立即订阅",
+                icon: Server, color: "blue", title: "独立节点部署",
+                price: "¥5,000", unit: "/ 节点", billing: "支持1-6容器",
+                desc: "专业私有化部署，按实际节点计费，享1年专业技术支持。",
+                points: ["系统部署与环境调优", "节点配置和技能组合", "交付培训与文档"],
+                btn: "了解详情",
                 highlight: false,
               },
               {
-                icon: Box, color: "green", title: "插件定制",
+                icon: Shield, color: "amber", title: "集群部署", badge: "推荐",
+                price: "¥12,000", unit: "起 / 年", billing: "按年订阅",
+                desc: "集群私有化部署，按节点角色与数量计费，享1年专业技术支持。",
+                points: ["专业私有化部署", "按实际节点计费", "1年专业技术支持"],
+                btn: "立即联系",
+                highlight: true,
+              },
+              {
+                icon: Box, color: "red", title: "技能定制",
                 price: "另行评估", unit: "", billing: "按需报价",
-                desc: "针对独特业务场景的个性化功能开发，源码级定制，满足深度业务需求。",
+                desc: "源码级定制开发，满足深度业务需求。",
                 points: ["深度需求调研", "源码级定制开发", "专属技术支持与交付"],
-                btn: "联系销售",
+                btn: "获取方案",
                 highlight: false,
               },
             ].map((plan, i) => (
@@ -579,9 +524,11 @@ const LandingPage: React.FC = () => {
                     <span className="text-3xl font-bold text-white">{plan.price}</span>
                     {plan.unit && <span className="text-slate-400 text-sm ml-1">{plan.unit}</span>}
                   </div>
-                  <div className={`inline-block px-3 py-1 rounded-full text-xs font-medium mb-4 bg-${plan.color}-500/10 text-${plan.color}-400`}>
-                    {plan.billing}
-                  </div>
+                  {plan.billing && (
+                    <div className={`inline-block px-3 py-1 rounded-full text-xs font-medium mb-4 bg-${plan.color}-500/10 text-${plan.color}-400`}>
+                      {plan.billing}
+                    </div>
+                  )}
                   <p className="text-slate-400 text-sm mb-6 leading-relaxed">{plan.desc}</p>
                   <div className="space-y-3 mb-6">
                     {plan.points.map((p) => (
@@ -599,36 +546,11 @@ const LandingPage: React.FC = () => {
             ))}
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="bg-slate-800/50 rounded-2xl p-6 sm:p-8 border border-slate-700"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-              <div>
-                <p className="text-slate-400 text-sm mb-1">自行部署</p>
-                <p className="text-white font-semibold">节点费 0 元 + 订阅可选</p>
-                <p className="text-slate-500 text-xs mt-1">自主安装，基础功能免费</p>
-              </div>
-              <div className="md:border-x md:border-slate-700">
-                <p className="text-slate-400 text-sm mb-1">定制部署</p>
-                <p className="text-white font-semibold">节点费 + 订阅费</p>
-                <p className="text-slate-500 text-xs mt-1">我们部署，持续服务保障</p>
-              </div>
-              <div>
-                <p className="text-slate-400 text-sm mb-1">插件定制</p>
-                <p className="text-white font-semibold">按需评估报价</p>
-                <p className="text-slate-500 text-xs mt-1">深度定制，源码交付</p>
-              </div>
-            </div>
-          </motion.div>
         </div>
       </section>
 
       {/* Showcase Section */}
-      <section id="showcase" className="py-20 lg:py-32 bg-slate-900/50 relative">
+      <section id="showcase" className="py-20 lg:py-32 bg-slate-900 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -643,18 +565,18 @@ const LandingPage: React.FC = () => {
               </span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-              在真实场景中，Q Agent如何帮助用户提升效率
+              在真实场景中，QAgent数字员工如何为您提升效率
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
             {[
-              { icon: Briefcase, color: "amber", title: "企业办公场景", metric: "效率提升 300%", desc: "在繁忙的办公环境中，Q Agent成为您的智能秘书。自动整理会议纪要、安排日程提醒、处理邮件回复、管理待办事项。一位市场经理使用后，每日节省2小时行政时间，将精力集中在核心业务决策上。", points: ["语音录入自动生成会议纪要", "智能日程冲突检测与优化", "邮件自动分类与智能回复建议"] },
-              { icon: Home, color: "blue", title: "家庭学习场景", metric: "学习效率提升 150%", desc: "家长通过Q Agent为孩子制定个性化学习计划，自动整理学习资料、生成知识框架图、监督学习进度。一位高中生使用后，期末成绩提升20%，学习效率显著提高。", points: ["智能生成个性化学习计划", "知识点自动梳理与思维导图", "作业批改与错题分析"] },
-              { icon: TrendingUp, color: "green", title: "财务管理场景", metric: "报销效率提升 500%", desc: "月末报销不再头疼。Q Agent自动识别发票信息、分类整理单据、生成报销明细表、计算金额汇总。一位销售代表使用后，原本需要半天整理的报销材料，现在5分钟完成。", points: ["发票自动识别与信息提取", "智能分类与报销单自动生成", "费用统计与预算跟踪"] },
-              { icon: Edit3, color: "pink", title: "内容创作场景", metric: "创作效率提升 400%", desc: "自媒体创作者使用Q Agent进行选题调研、素材收集、内容撰写、多平台适配。一位科技博主使用后，原本一周的内容产出，现在一天即可完成，粉丝增长300%。", points: ["热点话题自动追踪与选题建议", "一键生成多平台适配内容", "文案润色与SEO优化"] },
-              { icon: Laptop, color: "indigo", title: "软件开发场景", metric: "开发效率提升 200%", desc: "开发者使用Q Agent进行代码生成、Bug调试、文档编写、GitHub项目管理。一位全栈工程师使用后，项目交付周期缩短40%，代码质量显著提升。", points: ["自然语言描述生成代码", "自动调试与Bug修复建议", "GitHub项目自动托管与提交"] },
-              { icon: Search, color: "purple", title: "研究分析场景", metric: "研究效率提升 350%", desc: "研究人员使用Q Agent进行文献检索、资料整理、数据分析、报告撰写。一位研究生使用后，文献综述撰写时间从两周缩短至两天，研究效率大幅提升。", points: ["学术文献自动检索与摘要", "数据自动整理与可视化", "研究报告自动生成"] },
+              { icon: Briefcase, color: "amber", title: "企业办公场景", metric: "效率提升 300%", desc: "在繁忙的办公环境中，QAgent成为您的智能秘书。自动整理会议纪要、安排日程提醒、处理邮件回复、管理待办事项。一位市场经理使用后，每日节省2小时行政时间，将精力集中在核心业务决策上。", points: ["语音录入自动生成会议纪要", "智能日程冲突检测与优化", "邮件自动分类与智能回复建议"] },
+              { icon: Home, color: "blue", title: "学习辅导场景", metric: "学习效率提升 150%", desc: "老师通过QAgent为学生制定个性化学习计划，自动整理学习资料、生成知识框架图、监督学习进度。一位班主任使用后，班级平均成绩提升15%，教学效率显著提高。", points: ["智能生成个性化学习计划", "知识点自动梳理与思维导图", "作业批改与错题分析"] },
+              { icon: TrendingUp, color: "green", title: "财务管理场景", metric: "报销效率提升 500%", desc: "月末报销不再头疼。QAgent自动识别发票信息、分类整理单据、生成报销明细表、计算金额汇总。一位销售代表使用后，原本需要半天整理的报销材料，现在5分钟完成。", points: ["发票自动识别与信息提取", "智能分类与报销单自动生成", "费用统计与预算跟踪"] },
+              { icon: Edit3, color: "red", title: "内容创作场景", metric: "创作效率提升 400%", desc: "自媒体创作者使用QAgent进行选题调研、素材收集、内容撰写、多平台适配。一位科技博主使用后，原本一周的内容产出，现在一天即可完成，粉丝增长300%。", points: ["热点话题自动追踪与选题建议", "一键生成多平台适配内容", "文案润色与SEO优化"] },
+              { icon: Laptop, color: "indigo", title: "软件项目管理场景", metric: "产品迭代效率提升 10倍", desc: "开发者使用QAgent来管理Claude Code，文档编写、项目发布。一位全栈工程师使用后，项目交付周期缩短了80%，代码质量显著提升。", points: ["Claude Code项目管理", "文档自动编写与更新", "项目一键发布与部署"] },
+              { icon: Search, color: "purple", title: "研究分析场景", metric: "研究效率提升 350%", desc: "研究人员使用QAgent进行文献检索、资料整理、数据分析、报告撰写。一位研究生使用后，文献综述撰写时间从两周缩短至两天，研究效率大幅提升。", points: ["学术文献自动检索与摘要", "数据自动整理与可视化", "研究报告自动生成"] },
             ].map((scene, i) => (
               <motion.div
                 key={scene.title}
@@ -726,23 +648,23 @@ const LandingPage: React.FC = () => {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
-              <span className="text-white">准备好释放AI的</span>
-              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">真正潜力</span>
+              <span className="text-white">准备好拥有您的</span>
+              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">数字员工</span>
               <span className="text-white">了吗？</span>
             </h2>
             <p className="text-slate-400 text-lg mb-10 max-w-2xl mx-auto">
-              立即免费体验Q Agent，让AI智能体成为您的得力助手，提升工作效率，释放创造力
+              立即体验，让QAgent成为您的数字员工，提升工作效率，释放创造力和生产力
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={handleStart}
                 className="px-10 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-semibold text-lg hover:shadow-xl hover:shadow-amber-500/30 transition-all"
               >
-                免费体验
+                立即体验
               </button>
               <button className="px-10 py-4 border border-slate-600 text-slate-300 rounded-full font-semibold text-lg hover:border-amber-500 hover:text-amber-400 transition-all flex items-center gap-2">
                 <Mail className="w-5 h-5" />
-                联系销售
+                获取方案
               </button>
             </div>
           </motion.div>
@@ -770,19 +692,18 @@ const LandingPage: React.FC = () => {
                   </svg>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-lg font-bold text-white">Q Agent</span>
+                  <span className="text-lg font-bold text-white">QAgent</span>
                 </div>
               </div>
               <p className="text-slate-400 text-sm leading-relaxed">
-                基于OpenClaw开源生态的企业级AI智能体服务平台，让AI从"会回答"走向"会执行"。
+                基于包括OpenClaw/HermesAgent等开源生态，构建企业级AI智能体容器化方案，让初级智能体变为可靠、可协作、即开即用的数字员工。
               </p>
             </div>
 
             <div>
               <h4 className="text-white font-semibold mb-4">产品</h4>
               <ul className="space-y-2">
-                <li><button onClick={() => scrollToSection("principle")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">服务原理</button></li>
-                <li><button onClick={() => scrollToSection("features")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">服务特点</button></li>
+                <li><button onClick={() => scrollToSection("principle")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">技术原理</button></li>
                 <li><button onClick={() => scrollToSection("deployment")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">服务方式</button></li>
                 <li><button onClick={() => scrollToSection("pricing")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">收费模式</button></li>
                 <li><button onClick={() => scrollToSection("showcase")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">场景示范</button></li>
@@ -822,7 +743,7 @@ const LandingPage: React.FC = () => {
 
           <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-slate-500 text-sm">
-              &copy; 2026 Q Agent. All rights reserved.
+              &copy; 2026 QAgent. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
               <a href="#" className="text-slate-500 hover:text-slate-300 text-sm transition-colors">隐私政策</a>

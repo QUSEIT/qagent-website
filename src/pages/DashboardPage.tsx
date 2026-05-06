@@ -167,28 +167,26 @@ const DashboardPage: React.FC = () => {
     <div className="min-h-screen bg-slate-950 text-white">
       {/* Header */}
       <nav className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-lg font-bold text-white">Q Agent 控制台</span>
+        <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
+            <span className="text-lg font-bold text-white">QAgent 控制台</span>
+          </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-slate-300 text-sm">
-                <User className="w-4 h-4" />
-                <span>{user?.username}</span>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all text-sm"
-              >
-                <LogOut className="w-4 h-4" />
-                退出
-              </button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-slate-300 text-sm">
+              <User className="w-4 h-4" />
+              <span>{user?.username}</span>
             </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all text-sm"
+            >
+              <LogOut className="w-4 h-4" />
+              退出
+            </button>
           </div>
         </div>
       </nav>
