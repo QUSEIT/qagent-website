@@ -49,3 +49,13 @@ body {
   background: #64748b;
 }
 
+/* Sidebar menu buttons: remove all default browser focus/active outlines */
+aside nav button,
+aside nav button:focus,
+aside nav button:focus-visible,
+aside nav button:active {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+

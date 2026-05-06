@@ -1,6 +1,9 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
+require('dotenv').config();
+
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:8000';
 
 module.exports = (env, argv) => {
   const isDev = argv.mode !== 'production';
@@ -55,7 +58,7 @@ module.exports = (env, argv) => {
       proxy: [
         {
           context: ['/api'],
-          target: 'http://localhost:8000',
+          target: API_BASE_URL,
           changeOrigin: true,
         }
       ]
@@ -66,7 +69,7 @@ module.exports = (env, argv) => {
         inject: 'body'
       }),
       new webpack.DefinePlugin({
-        'process.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || '')
+        'process.env.API_BASE_URL': JSON.stringify(isDev ? '' : API_BASE_URL)
       })
     ]
   };
