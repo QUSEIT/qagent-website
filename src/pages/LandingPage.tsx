@@ -494,7 +494,7 @@ const LandingPage: React.FC = () => {
               },
               {
                 icon: Server, color: "blue", title: "独立节点部署",
-                price: "¥5,000", unit: "/ 节点", billing: "支持1-6容器",
+                price: "待协商", unit: "", billing: "支持1-6容器",
                 desc: "专业私有化部署，按实际节点计费，享1年专业技术支持。",
                 points: ["系统部署与环境调优", "节点配置和技能组合", "交付培训与文档"],
                 btn: "联系我们",
@@ -502,7 +502,7 @@ const LandingPage: React.FC = () => {
               },
               {
                 icon: Shield, color: "amber", title: "集群部署", badge: "推荐",
-                price: "¥12,000", unit: "起 / 年", billing: "按年订阅",
+                price: "待协商", unit: "", billing: "按年订阅",
                 desc: "集群私有化部署，按节点角色与数量计费，享1年专业技术支持。",
                 points: ["专业私有化部署", "按实际节点计费", "1年专业技术支持"],
                 btn: "联系我们",
@@ -510,7 +510,7 @@ const LandingPage: React.FC = () => {
               },
               {
                 icon: Box, color: "red", title: "技能定制",
-                price: "另行评估", unit: "", billing: "按需报价",
+                price: "待评估", unit: "", billing: "待评估",
                 desc: "源码级定制开发，满足深度业务需求。",
                 points: ["深度需求调研", "源码级定制开发", "专属技术支持与交付"],
                 btn: "联系我们",
