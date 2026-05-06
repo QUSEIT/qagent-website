@@ -76,7 +76,10 @@ const LandingPage: React.FC = () => {
                 服务特点
               </button>
               <button onClick={() => scrollToSection("deployment")} className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
-                部署方式
+                服务方式
+              </button>
+              <button onClick={() => scrollToSection("pricing")} className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
+                收费模式
               </button>
               <button onClick={() => scrollToSection("showcase")} className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
                 场景示范
@@ -126,7 +129,10 @@ const LandingPage: React.FC = () => {
                   服务特点
                 </button>
                 <button onClick={() => scrollToSection("deployment")} className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
-                  部署方式
+                  服务方式
+                </button>
+                <button onClick={() => scrollToSection("pricing")} className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
+                  收费模式
                 </button>
                 <button onClick={() => scrollToSection("showcase")} className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
                   场景示范
@@ -183,7 +189,7 @@ const LandingPage: React.FC = () => {
                 onClick={handleStart}
                 className="group px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-semibold text-lg hover:shadow-xl hover:shadow-amber-500/30 transition-all flex items-center gap-2"
               >
-                开始使用
+                免费体验
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
               <button className="px-8 py-4 border border-slate-600 text-slate-300 rounded-full font-semibold text-lg hover:border-amber-500 hover:text-amber-400 transition-all flex items-center gap-2">
@@ -430,11 +436,11 @@ const LandingPage: React.FC = () => {
           >
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
               <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
-                部署方式
+                服务方式
               </span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-              三种部署模式，满足不同规模与场景的需求
+              三种服务模式，灵活匹配您的业务需求
             </p>
           </motion.div>
 
@@ -442,21 +448,21 @@ const LandingPage: React.FC = () => {
             {[
               {
                 icon: Download, color: "amber", title: "自行部署", badge: "推荐",
-                desc: "适合个人开发者与技术团队。一键安装包，开箱即用，支持Windows与macOS双平台，20秒完成部署。",
-                points: ["一键安装，零配置", "本地运行，数据安全", "免费使用，开源生态"],
-                btn: "下载安装",
+                desc: "适合有技术能力的个人与团队。提供完整安装包与文档，自主完成部署，数据完全本地掌控。",
+                points: ["一键安装，零配置", "本地运行，数据安全", "免费基础功能"],
+                btn: "免费体验",
               },
               {
-                icon: Settings, color: "blue", title: "私有定制部署",
-                desc: "适合中大型企业。私有化部署方案，支持Kubernetes集群编排，定制化开发与专属技术支持。",
-                points: ["私有化部署", "集群高可用", "专属技术支持"],
+                icon: Settings, color: "blue", title: "定制部署",
+                desc: "适合中大型企业。由我们提供私有化部署实施服务，支持多节点集群与高可用架构。",
+                points: ["专业团队上门部署", "集群高可用架构", "按需定制配置"],
                 btn: "联系销售",
               },
               {
-                icon: Cloud, color: "green", title: "云服务",
-                desc: "适合快速启动与弹性需求。SaaS化云服务，按需付费，免运维，支持多租户管理与企业级SLA保障。",
-                points: ["即开即用", "弹性伸缩", "企业级SLA"],
-                btn: "了解详情",
+                icon: Layers, color: "green", title: "插件定制",
+                desc: "针对特殊业务场景的个性化功能开发。基于现有能力进行深度定制，满足独特业务需求。",
+                points: ["深度功能定制", "专属接口开发", "源码级交付"],
+                btn: "需求评估",
               },
             ].map((plan, i) => (
               <motion.div
@@ -493,6 +499,131 @@ const LandingPage: React.FC = () => {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-20 lg:py-32 bg-slate-900 relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
+                收费模式
+              </span>
+            </h2>
+            <p className="text-slate-400 max-w-2xl mx-auto text-lg">
+              一次性部署与年度订阅相结合，灵活匹配您的投入节奏
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 mb-12">
+            {[
+              {
+                icon: Server, color: "blue", title: "部署服务费",
+                price: "¥5,000", unit: "/ 节点", billing: "一次性费用",
+                desc: "由我们提供专业的私有化部署实施服务，按实际部署的节点数量计费。",
+                points: ["现场部署与环境调优", "集群配置与性能优化", "交付培训与文档"],
+                btn: "了解详情",
+                highlight: false,
+              },
+              {
+                icon: Shield, color: "amber", title: "控制节点订阅", badge: "推荐",
+                price: "¥12,000", unit: "/ 年 / Agents控制节点", billing: "按年订阅",
+                desc: "集群管理中心，负责任务调度、策略管控与全局状态管理。每个集群至少需要一个控制节点。",
+                points: ["集群调度与任务分发", "策略管控与权限管理", "全局状态监控", "版本升级与技术支持"],
+                btn: "立即订阅",
+                highlight: true,
+              },
+              {
+                icon: Zap, color: "orange", title: "工作节点订阅",
+                price: "¥8,000", unit: "/ 年 / Agent独立工作节点", billing: "按年订阅",
+                desc: "独立执行任务的智能体节点，承担实际业务处理与数据运算工作，可按需弹性扩展。",
+                points: ["独立业务处理执行", "数据运算与结果输出", "弹性扩展按需增减", "OpenSkill技能市场全量解锁"],
+                btn: "立即订阅",
+                highlight: false,
+              },
+              {
+                icon: Box, color: "green", title: "插件定制",
+                price: "另行评估", unit: "", billing: "按需报价",
+                desc: "针对独特业务场景的个性化功能开发，源码级定制，满足深度业务需求。",
+                points: ["深度需求调研", "源码级定制开发", "专属技术支持与交付"],
+                btn: "联系销售",
+                highlight: false,
+              },
+            ].map((plan, i) => (
+              <motion.div
+                key={plan.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: i * 0.1 }}
+                className="group relative"
+              >
+                <div className={`h-full rounded-2xl p-8 transition-all ${plan.highlight ? 'bg-gradient-to-b from-amber-500/10 to-slate-900 border-2 border-amber-500/50' : 'bg-slate-900 border border-slate-800 hover:border-slate-700'}`}>
+                  {plan.badge && (
+                    <div className="absolute top-0 right-0 bg-amber-500 text-slate-950 text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
+                      {plan.badge}
+                    </div>
+                  )}
+                  <div className={`w-12 h-12 bg-${plan.color}-500/10 rounded-xl flex items-center justify-center mb-6`}>
+                    <plan.icon className={`w-6 h-6 text-${plan.color}-400`} />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{plan.title}</h3>
+                  <div className="mb-4">
+                    <span className="text-3xl font-bold text-white">{plan.price}</span>
+                    {plan.unit && <span className="text-slate-400 text-sm ml-1">{plan.unit}</span>}
+                  </div>
+                  <div className={`inline-block px-3 py-1 rounded-full text-xs font-medium mb-4 bg-${plan.color}-500/10 text-${plan.color}-400`}>
+                    {plan.billing}
+                  </div>
+                  <p className="text-slate-400 text-sm mb-6 leading-relaxed">{plan.desc}</p>
+                  <div className="space-y-3 mb-6">
+                    {plan.points.map((p) => (
+                      <div key={p} className="flex items-center gap-2 text-slate-300 text-sm">
+                        <CheckCircle className={`w-4 h-4 text-${plan.color}-400 flex-shrink-0`} />
+                        {p}
+                      </div>
+                    ))}
+                  </div>
+                  <button className={`w-full py-3 rounded-lg font-medium transition-all ${plan.highlight ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg hover:shadow-amber-500/30' : `border border-${plan.color}-500 text-${plan.color}-400 hover:bg-${plan.color}-500 hover:text-${plan.color === "blue" ? "white" : "slate-950"}`}`}>
+                    {plan.btn}
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="bg-slate-800/50 rounded-2xl p-6 sm:p-8 border border-slate-700"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+              <div>
+                <p className="text-slate-400 text-sm mb-1">自行部署</p>
+                <p className="text-white font-semibold">节点费 0 元 + 订阅可选</p>
+                <p className="text-slate-500 text-xs mt-1">自主安装，基础功能免费</p>
+              </div>
+              <div className="md:border-x md:border-slate-700">
+                <p className="text-slate-400 text-sm mb-1">定制部署</p>
+                <p className="text-white font-semibold">节点费 + 订阅费</p>
+                <p className="text-slate-500 text-xs mt-1">我们部署，持续服务保障</p>
+              </div>
+              <div>
+                <p className="text-slate-400 text-sm mb-1">插件定制</p>
+                <p className="text-white font-semibold">按需评估报价</p>
+                <p className="text-slate-500 text-xs mt-1">深度定制，源码交付</p>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
@@ -600,14 +731,14 @@ const LandingPage: React.FC = () => {
               <span className="text-white">了吗？</span>
             </h2>
             <p className="text-slate-400 text-lg mb-10 max-w-2xl mx-auto">
-              立即开始使用Q Agent，让AI智能体成为您的得力助手，提升工作效率，释放创造力
+              立即免费体验Q Agent，让AI智能体成为您的得力助手，提升工作效率，释放创造力
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={handleStart}
                 className="px-10 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-semibold text-lg hover:shadow-xl hover:shadow-amber-500/30 transition-all"
               >
-                开始使用
+                免费体验
               </button>
               <button className="px-10 py-4 border border-slate-600 text-slate-300 rounded-full font-semibold text-lg hover:border-amber-500 hover:text-amber-400 transition-all flex items-center gap-2">
                 <Mail className="w-5 h-5" />
@@ -652,7 +783,8 @@ const LandingPage: React.FC = () => {
               <ul className="space-y-2">
                 <li><button onClick={() => scrollToSection("principle")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">服务原理</button></li>
                 <li><button onClick={() => scrollToSection("features")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">服务特点</button></li>
-                <li><button onClick={() => scrollToSection("deployment")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">部署方式</button></li>
+                <li><button onClick={() => scrollToSection("deployment")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">服务方式</button></li>
+                <li><button onClick={() => scrollToSection("pricing")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">收费模式</button></li>
                 <li><button onClick={() => scrollToSection("showcase")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">场景示范</button></li>
               </ul>
             </div>
