@@ -40,6 +40,13 @@ module.exports = (env, argv) => {
         {
           test: /\.css$/,
           use: ['style-loader', 'css-loader', 'postcss-loader']
+        },
+        {
+          test: /\.(png|jpg|jpeg|gif|svg|webp)$/i,
+          type: 'asset/resource',
+          generator: {
+            filename: 'assets/[name].[hash][ext]'
+          }
         }
       ]
     },

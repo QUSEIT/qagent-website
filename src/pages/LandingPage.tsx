@@ -9,6 +9,7 @@ import {
   Laptop, Search, MapPin,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import qrcodeImg from "../assets/qrcode.jpg";
 
 const LandingPage: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -712,7 +713,7 @@ const LandingPage: React.FC = () => {
                 <MessageSquare className="w-6 h-6 text-amber-400" />
               </div>
               <h3 className="text-white font-semibold mb-4">联系微信</h3>
-              <img src="/qrcode.jpg" alt="联系微信二维码" className="w-28 h-28 rounded-xl object-cover" />
+              <img src={qrcodeImg} alt="联系微信二维码" className="w-28 h-28 rounded-xl object-cover" />
             </motion.div>
           </div>
         </div>

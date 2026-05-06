@@ -168,11 +168,22 @@ const DashboardPage: React.FC = () => {
       {/* Header */}
       <nav className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800">
         <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+            <div className="w-8 h-8 relative">
+              <svg viewBox="0 0 100 100" className="w-full h-full">
+                <defs>
+                  <linearGradient id="logoGradDash" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#fbbf24" />
+                    <stop offset="100%" stopColor="#f59e0b" />
+                  </linearGradient>
+                </defs>
+                <polygon points="20,50 50,80 80,50 70,40 50,60 30,40" fill="url(#logoGradDash)" />
+                <rect x="55" y="25" width="15" height="15" fill="#3b82f6" transform="rotate(45 62.5 32.5)" />
+                <rect x="45" y="10" width="10" height="10" fill="#ef4444" transform="rotate(45 50 15)" />
+                <rect x="30" y="30" width="8" height="8" fill="#22c55e" transform="rotate(45 34 34)" />
+              </svg>
             </div>
-            <span className="text-lg font-bold text-white">QAgent 控制台</span>
+            <span className="text-lg font-bold text-white">QAgent</span>
           </div>
 
           <div className="flex items-center gap-4">
