@@ -356,14 +356,14 @@ const DashboardPage: React.FC = () => {
                               <Cpu className="w-4 h-4 text-amber-400" />
                               <span className="text-slate-300 text-sm font-medium">CPU</span>
                             </div>
-                            <p className="text-white text-lg font-bold">1 核</p>
+                            <p className="text-white text-lg font-bold">1.5 核</p>
                           </div>
                           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                             <div className="flex items-center gap-2 mb-2">
                               <Zap className="w-4 h-4 text-blue-400" />
                               <span className="text-slate-300 text-sm font-medium">内存</span>
                             </div>
-                            <p className="text-white text-lg font-bold">2 GB</p>
+                            <p className="text-white text-lg font-bold">3 GB</p>
                           </div>
                           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                             <div className="flex items-center gap-2 mb-2">
@@ -429,14 +429,14 @@ const DashboardPage: React.FC = () => {
                         <Cpu className="w-4 h-4 text-amber-400" />
                         <span className="text-slate-300 text-sm font-medium">CPU</span>
                       </div>
-                      <p className="text-white text-lg font-bold">1 核</p>
+                      <p className="text-white text-lg font-bold">1.5 核</p>
                     </div>
                     <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Zap className="w-4 h-4 text-blue-400" />
                         <span className="text-slate-300 text-sm font-medium">内存</span>
                       </div>
-                      <p className="text-white text-lg font-bold">2 GB</p>
+                      <p className="text-white text-lg font-bold">3 GB</p>
                     </div>
                     <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                       <div className="flex items-center gap-2 mb-2">

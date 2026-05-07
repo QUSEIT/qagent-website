@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/qagent", tags=["qagent"])
 
 DEFAULT_QAGENT_CONFIG = {
-    "cpu_cores": 1,
-    "memory_gb": 2,
+    "cpu_cores": 1.5,
+    "memory_gb": 3,
     "disk_gb": 20,
     "gpu_enabled": False,
     "gpu_count": 0,
