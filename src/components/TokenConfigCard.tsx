@@ -11,7 +11,7 @@ interface TokenConfig {
 }
 
 const PROVIDER_LABELS: Record<TokenProvider, string> = {
-  minimx: "Minimx Coding",
+  minimx: "Minimax Coding",
   kimi: "Kimi Coding Plan",
 };
 

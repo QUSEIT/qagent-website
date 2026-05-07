@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -28,6 +28,7 @@ class UserOut(BaseModel):
     email: str
     username: str
     qagent_instance_id: Optional[int]
+    max_instances: int
     created_at: datetime
 
     class Config:
@@ -38,10 +39,23 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 
+class InstanceInfo(BaseModel):
+    id: int
+    clawmanager_instance_id: int
+    name: str
+    instance_type: str
+    skill_template: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class QAgentStatus(BaseModel):
     has_instance: bool
-    instance_id: Optional[int] = None
-    instance_type: Optional[str] = None
+    instances: List[InstanceInfo] = []
+    max_instances: int = 0
+    can_create: bool = False
 
 
 class QAgentCreateResponse(BaseModel):

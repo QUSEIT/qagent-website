@@ -6,6 +6,7 @@ export interface User {
   email: string;
   username: string;
   qagent_instance_id: number | null;
+  max_instances: number;
   created_at: string;
 }
 

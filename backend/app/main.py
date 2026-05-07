@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import engine, Base
+from app.database import init_db
 from app.routers import auth, qagent
 
-Base.metadata.create_all(bind=engine)
+init_db()
 
 app = FastAPI(title="Q Agent API", version="1.0.0")
 
