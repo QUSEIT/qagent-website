@@ -95,6 +95,9 @@ const LandingPage: React.FC = () => {
               <button onClick={() => scrollToSection("contact")} className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
                 联系我们
               </button>
+              <a href="https://www.openskill.top/" target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
+                文档
+              </a>
             </div>
 
             <div className="hidden lg:flex items-center gap-4">
@@ -148,6 +151,9 @@ const LandingPage: React.FC = () => {
                 <button onClick={() => scrollToSection("contact")} className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
                   联系我们
                 </button>
+                <a href="https://www.openskill.top/" target="_blank" rel="noopener noreferrer" className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
+                  文档
+                </a>
                 <button
                   className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-medium"
                 >

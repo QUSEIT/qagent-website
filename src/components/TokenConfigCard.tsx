@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Key, Globe, Cpu, Save, CheckCircle } from "lucide-react";
+import { Key, Globe, Cpu, Save, CheckCircle, AlertCircle } from "lucide-react";
+import api from "../services/api";
 
 type TokenProvider = "minimx" | "kimi";
 
@@ -8,6 +9,10 @@ interface TokenConfig {
   key: string;
   model: string;
   baseUrl: string;
+}
+
+interface TokenConfigCardProps {
+  instanceId?: number;
 }
 
 const PROVIDER_LABELS: Record<TokenProvider, string> = {
@@ -18,8 +23,8 @@ const PROVIDER_LABELS: Record<TokenProvider, string> = {
 const DEFAULT_CONFIGS: Record<TokenProvider, TokenConfig> = {
   minimx: {
     key: "",
-    model: "claude-3-5-sonnet",
-    baseUrl: "https://api.minimx.ai/v1",
+    model: "minimax/MiniMax-M2.7",
+    baseUrl: "https://api.minimaxi.com/anthropic",
   },
   kimi: {
     key: "",
@@ -28,11 +33,21 @@ const DEFAULT_CONFIGS: Record<TokenProvider, TokenConfig> = {
   },
 };
 
-const TokenConfigCard: React.FC = () => {
+const MINIMX_MODELS = [
+  "minimax/MiniMax-M2.7",
+  "minimax/MiniMax-M2.7-highspeed",
+];
+
+function buildMinimaxOnboardCommand(apiKey: string): string {
+  return `MINIMAX_API_KEY="${apiKey}" openclaw onboard --non-interactive --mode local --auth-choice minimax-cn-api --accept-risk --skip-bootstrap --skip-skills --skip-search --skip-health --skip-channels --skip-ui --gateway-bind loopback`;
+}
+
+const TokenConfigCard: React.FC<TokenConfigCardProps> = ({ instanceId }) => {
   const [provider, setProvider] = useState<TokenProvider | null>(null);
   const [config, setConfig] = useState<TokenConfig>({ key: "", model: "", baseUrl: "" });
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSelectProvider = (p: TokenProvider) => {
     setProvider(p);
@@ -43,15 +58,30 @@ const TokenConfigCard: React.FC = () => {
   const handleChange = (field: keyof TokenConfig, value: string) => {
     setConfig((prev) => ({ ...prev, [field]: value }));
     setSaved(false);
+    setError("");
   };
 
   const handleSave = async () => {
+    if (!provider) return;
     setIsSaving(true);
-    // TODO: call backend API to save token config
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    setIsSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setError("");
+
+    try {
+      const localKey = `token_config_${provider}`;
+      localStorage.setItem(localKey, JSON.stringify(config));
+
+      if (provider === "minimx" && instanceId && config.key.trim()) {
+        const command = buildMinimaxOnboardCommand(config.key.trim());
+        await api.post(`/qagent/exec/${instanceId}`, { command });
+      }
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "保存失败，请重试");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const canSave = provider && config.key.trim() && config.model.trim() && config.baseUrl.trim();
@@ -116,14 +146,28 @@ const TokenConfigCard: React.FC = () => {
                 Model
               </label>
               <div className="relative">
-                <Cpu className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input
-                  type="text"
-                  value={config.model}
-                  onChange={(e) => handleChange("model", e.target.value)}
-                  placeholder="e.g. claude-3-5-sonnet"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                />
+                <Cpu className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 z-10" />
+                {provider === "minimx" ? (
+                  <select
+                    value={config.model}
+                    onChange={(e) => handleChange("model", e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all appearance-none"
+                  >
+                    {MINIMX_MODELS.map((m) => (
+                      <option key={m} value={m} className="bg-slate-800">
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={config.model}
+                    onChange={(e) => handleChange("model", e.target.value)}
+                    placeholder="e.g. moonshot-v1-8k"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  />
+                )}
               </div>
             </div>
 
@@ -142,6 +186,13 @@ const TokenConfigCard: React.FC = () => {
                 />
               </div>
             </div>
+
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2 text-red-400 text-sm">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
             <button
               onClick={handleSave}

@@ -641,7 +641,7 @@ const DashboardPage: React.FC = () => {
               </div>
             </motion.div>
           ) : activeTab === "token" ? (
-            <TokenConfigCard />
+            <TokenConfigCard instanceId={selectedInstance?.clawmanager_instance_id} />
           ) : (
             <ChannelConfigCard />
           )}

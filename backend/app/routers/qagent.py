@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import User, Instance
-from app.schemas import QAgentStatus, QAgentCreateResponse, QAgentDeleteResponse, QAgentAccessResponse, QAgentInstanceStatus, InstanceInfo
+from app.schemas import QAgentStatus, QAgentCreateResponse, QAgentDeleteResponse, QAgentAccessResponse, QAgentInstanceStatus, QAgentExecRequest, InstanceInfo
 from app.services.clawmanager import clawmanager_client, ClawManagerError
 
 logger = logging.getLogger(__name__)
@@ -179,6 +179,42 @@ def access_qagent(
         proxy_url=_absolutize(data["proxy_url"]),
         expires_at=data["expires_at"],
     )
+
+
+@router.post("/exec/{instance_id}")
+def exec_qagent(
+    instance_id: int,
+    req: QAgentExecRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+
+    try:
+        result = clawmanager_client.exec_instance(instance.clawmanager_instance_id, req.command)
+        return result
+    except ClawManagerError as e:
+        logger.exception(
+            "ClawManager exec_instance failed (base_url=%s, instance_id=%s)",
+            clawmanager_client.base_url,
+            instance.clawmanager_instance_id,
+        )
+        raise HTTPException(
+            status_code=e.status_code if e.status_code >= 400 else 500,
+            detail=e.detail,
+        )
+    except Exception as e:
+        logger.exception(
+            "ClawManager exec_instance failed (base_url=%s, instance_id=%s)",
+            clawmanager_client.base_url,
+            instance.clawmanager_instance_id,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to exec instance: {type(e).__name__}: {e}",
+        )
 
 
 @router.delete("/instance/{instance_id}", response_model=QAgentDeleteResponse)

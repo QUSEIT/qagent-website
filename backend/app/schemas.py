@@ -77,3 +77,7 @@ class QAgentAccessResponse(BaseModel):
 class QAgentInstanceStatus(BaseModel):
     status: str
     pod_status: Optional[str] = None
+
+
+class QAgentExecRequest(BaseModel):
+    command: str

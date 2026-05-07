@@ -122,5 +122,8 @@ class ClawManagerClient:
     def get_instance_status(self, instance_id: int) -> Dict[str, Any]:
         return self._request("GET", f"/api/v1/instances/{instance_id}/status")
 
+    def exec_instance(self, instance_id: int, command: str) -> Dict[str, Any]:
+        return self._request("POST", f"/api/v1/instances/{instance_id}/exec", json={"command": command})
+
 
 clawmanager_client = ClawManagerClient()
