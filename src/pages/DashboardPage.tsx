@@ -387,18 +387,22 @@ const DashboardPage: React.FC = () => {
                       实例类型
                     </label>
                     <div className="grid grid-cols-2 gap-3">
-                      {(["OpenClaw", "HermesAgent"] as InstanceType[]).map((type) => (
+                      {([
+                        { id: "OpenClaw" as InstanceType, label: "OpenClaw", desc: "复杂任务编排与多工具协作" },
+                        { id: "HermesAgent" as InstanceType, label: "HermesAgent", desc: "长期记忆与自主技能进化" },
+                      ]).map((t) => (
                         <button
-                          key={type}
+                          key={t.id}
                           type="button"
-                          onClick={() => setInstanceType(type)}
-                          className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all ${
-                            instanceType === type
+                          onClick={() => setInstanceType(t.id)}
+                          className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all text-left ${
+                            instanceType === t.id
                               ? "border-amber-500 bg-amber-500/10 text-amber-400"
                               : "border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600"
                           }`}
                         >
-                          {type}
+                          <span className="block">{t.label}</span>
+                          <span className="block text-[11px] font-normal text-slate-500 mt-0.5">{t.desc}</span>
                         </button>
                       ))}
                     </div>
