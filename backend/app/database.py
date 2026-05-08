@@ -35,6 +35,12 @@ def init_db():
                 conn.execute(text("ALTER TABLE users ADD COLUMN qagent_instance_name VARCHAR(100)"))
                 conn.commit()
 
+            result = conn.execute(text("PRAGMA table_info(instances)"))
+            inst_columns = [row[1] for row in result]
+            if "default_provider" not in inst_columns:
+                conn.execute(text("ALTER TABLE instances ADD COLUMN default_provider VARCHAR(50)"))
+                conn.commit()
+
             # Migrate legacy single-instance data to instances table
             result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='instances'"))
             if result.fetchone():

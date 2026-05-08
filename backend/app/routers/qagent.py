@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models import User, Instance
-from app.schemas import QAgentStatus, QAgentCreateResponse, QAgentDeleteResponse, QAgentAccessResponse, QAgentInstanceStatus, QAgentExecRequest, InstanceInfo
+from app.models import User, Instance, TokenConfig
+from app.schemas import QAgentStatus, QAgentCreateResponse, QAgentDeleteResponse, QAgentAccessResponse, QAgentInstanceStatus, QAgentExecRequest, InstanceInfo, TokenConfigCreate, TokenConfigOut
 from app.services.clawmanager import clawmanager_client, ClawManagerError
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/qagent", tags=["qagent"])
 
 DEFAULT_QAGENT_CONFIG = {
     "cpu_cores": 1,
-    "memory_gb": 2,
+    "memory_gb": 4,
     "disk_gb": 20,
     "gpu_enabled": False,
     "gpu_count": 0,
@@ -215,6 +215,57 @@ def exec_qagent(
             status_code=500,
             detail=f"Failed to exec instance: {type(e).__name__}: {e}",
         )
+
+
+@router.post("/token-config", response_model=TokenConfigOut)
+def save_token_config(
+    req: TokenConfigCreate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    existing = (
+        db.query(TokenConfig)
+        .filter(TokenConfig.user_id == user.id, TokenConfig.provider == req.provider)
+        .first()
+    )
+    if existing:
+        existing.api_key = req.api_key
+        existing.model = req.model
+        existing.base_url = req.base_url
+    else:
+        existing = TokenConfig(
+            user_id=user.id,
+            provider=req.provider,
+            api_key=req.api_key,
+            model=req.model,
+            base_url=req.base_url,
+        )
+        db.add(existing)
+
+    if req.instance_id:
+        instance = db.query(Instance).filter(Instance.id == req.instance_id, Instance.user_id == user.id).first()
+        if instance:
+            instance.default_provider = req.provider
+
+    db.commit()
+    db.refresh(existing)
+    return existing
+
+
+@router.get("/token-config/{provider}", response_model=TokenConfigOut)
+def get_token_config(
+    provider: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    config = (
+        db.query(TokenConfig)
+        .filter(TokenConfig.user_id == user.id, TokenConfig.provider == provider)
+        .first()
+    )
+    if not config:
+        raise HTTPException(status_code=404, detail="Token config not found")
+    return config
 
 
 @router.delete("/instance/{instance_id}", response_model=QAgentDeleteResponse)

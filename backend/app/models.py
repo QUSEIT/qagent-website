@@ -20,6 +20,22 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     instances = relationship("Instance", back_populates="user", cascade="all, delete-orphan")
+    token_configs = relationship("TokenConfig", back_populates="user", cascade="all, delete-orphan")
+
+
+class TokenConfig(Base):
+    __tablename__ = "token_configs"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    provider = Column(String(50), nullable=False)
+    api_key = Column(String(500), nullable=False)
+    model = Column(String(100), nullable=False)
+    base_url = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user = relationship("User", back_populates="token_configs")
 
 
 class Instance(Base):
@@ -31,6 +47,7 @@ class Instance(Base):
     name = Column(String(100), nullable=False)
     instance_type = Column(String(50), nullable=False)
     skill_template = Column(String(50), nullable=True)
+    default_provider = Column(String(50), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     user = relationship("User", back_populates="instances")

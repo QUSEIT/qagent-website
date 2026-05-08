@@ -15,6 +15,7 @@ interface InstanceInfo {
   name: string;
   instance_type: string;
   skill_template?: string;
+  default_provider?: string;
   created_at: string;
 }
 
@@ -447,7 +448,7 @@ const DashboardPage: React.FC = () => {
                           <Zap className="w-4 h-4 text-blue-400" />
                           <span className="text-slate-300 text-sm font-medium">内存</span>
                         </div>
-                        <p className="text-white text-lg font-bold">2 GB</p>
+                        <p className="text-white text-lg font-bold">4 GB</p>
                       </div>
                       <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                         <div className="flex items-center gap-2 mb-2">
@@ -556,7 +557,7 @@ const DashboardPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
                   <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Cpu className="w-4 h-4 text-amber-400" />
@@ -569,7 +570,7 @@ const DashboardPage: React.FC = () => {
                       <Zap className="w-4 h-4 text-blue-400" />
                       <span className="text-slate-300 text-sm font-medium">内存</span>
                     </div>
-                    <p className="text-white text-lg font-bold">2 GB</p>
+                    <p className="text-white text-lg font-bold">4 GB</p>
                   </div>
                   <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -577,6 +578,15 @@ const DashboardPage: React.FC = () => {
                       <span className="text-slate-300 text-sm font-medium">磁盘</span>
                     </div>
                     <p className="text-white text-lg font-bold">20 GB</p>
+                  </div>
+                  <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="w-4 h-4 text-purple-400" />
+                      <span className="text-slate-300 text-sm font-medium">预设技能模板</span>
+                    </div>
+                    <p className="text-white text-lg font-bold">
+                      {SKILL_TEMPLATES.find((t) => t.id === selectedInstance.skill_template)?.label || "无"}
+                    </p>
                   </div>
                 </div>
 
@@ -641,7 +651,7 @@ const DashboardPage: React.FC = () => {
               </div>
             </motion.div>
           ) : activeTab === "token" ? (
-            <TokenConfigCard instanceId={selectedInstance?.clawmanager_instance_id} />
+            <TokenConfigCard instanceId={selectedInstance?.id} defaultProvider={selectedInstance?.default_provider} />
           ) : (
             <ChannelConfigCard />
           )}

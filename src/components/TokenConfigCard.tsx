@@ -13,10 +13,11 @@ interface TokenConfig {
 
 interface TokenConfigCardProps {
   instanceId?: number;
+  defaultProvider?: string;
 }
 
 const PROVIDER_LABELS: Record<TokenProvider, string> = {
-  minimx: "Minimax Coding",
+  minimx: "Minimax Coding Plan",
   kimi: "Kimi Coding Plan",
 };
 
@@ -28,31 +29,58 @@ const DEFAULT_CONFIGS: Record<TokenProvider, TokenConfig> = {
   },
   kimi: {
     key: "",
-    model: "moonshot-v1-8k",
-    baseUrl: "https://api.moonshot.cn/v1",
+    model: "kimi/kimi-code",
+    baseUrl: "https://api.kimi.com/coding/v1",
   },
 };
 
 const MINIMX_MODELS = [
-  "minimax/MiniMax-M2.7",
-  "minimax/MiniMax-M2.7-highspeed",
+  { value: "minimax/MiniMax-M2.7", label: "minimax/MiniMax-M2.7" },
+  { value: "minimax/MiniMax-M2.7-highspeed", label: "minimax/MiniMax-M2.7-highspeed" },
 ];
 
-function buildMinimaxOnboardCommand(apiKey: string): string {
-  return `MINIMAX_API_KEY="${apiKey}" openclaw onboard --non-interactive --mode local --auth-choice minimax-cn-api --accept-risk --skip-bootstrap --skip-skills --skip-search --skip-health --skip-channels --skip-ui --gateway-bind loopback`;
+const KIMI_MODELS = [
+  { value: "kimi/kimi-code", label: "kimi/kimi-code" },
+  { value: "kimi-coding/kimi-for-coding", label: "kimi-coding/kimi-for-coding" },
+  { value: "kimi-coding/kimi-k2-thinking", label: "kimi-coding/kimi-k2-thinking" },
+  { value: "kimi-coding/k2p6", label: "kimi-coding/k2p6" },
+];
+
+function buildOnboardCommand(provider: TokenProvider, apiKey: string, model: string): string {
+  let onboard: string;
+  if (provider === "minimx") {
+    onboard = `MINIMAX_API_KEY="${apiKey}" openclaw onboard --non-interactive --mode local --auth-choice minimax-cn-api --accept-risk --skip-bootstrap --skip-skills --skip-search --skip-health --skip-channels --skip-ui --gateway-bind loopback`;
+  } else {
+    onboard = `KIMI_API_KEY="${apiKey}" openclaw onboard --non-interactive --mode local --auth-choice kimi-code-api-key --accept-risk --skip-bootstrap --skip-skills --skip-search --skip-health --skip-channels --skip-ui --gateway-bind loopback`;
+  }
+  return `${onboard} && openclaw config set agents.defaults.model.primary ${model}`;
 }
 
-const TokenConfigCard: React.FC<TokenConfigCardProps> = ({ instanceId }) => {
+const TokenConfigCard: React.FC<TokenConfigCardProps> = ({ instanceId, defaultProvider }) => {
   const [provider, setProvider] = useState<TokenProvider | null>(null);
   const [config, setConfig] = useState<TokenConfig>({ key: "", model: "", baseUrl: "" });
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSelectProvider = (p: TokenProvider) => {
+  const handleSelectProvider = async (p: TokenProvider) => {
     setProvider(p);
-    setConfig({ ...DEFAULT_CONFIGS[p] });
     setSaved(false);
+    try {
+      const res = await api.get(`/qagent/token-config/${p}`);
+      setConfig({
+        key: res.data.api_key,
+        model: res.data.model,
+        baseUrl: res.data.base_url,
+      });
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        setConfig({ ...DEFAULT_CONFIGS[p] });
+      } else {
+        setError(err.response?.data?.detail || "获取配置失败");
+        setConfig({ ...DEFAULT_CONFIGS[p] });
+      }
+    }
   };
 
   const handleChange = (field: keyof TokenConfig, value: string) => {
@@ -67,11 +95,16 @@ const TokenConfigCard: React.FC<TokenConfigCardProps> = ({ instanceId }) => {
     setError("");
 
     try {
-      const localKey = `token_config_${provider}`;
-      localStorage.setItem(localKey, JSON.stringify(config));
+      await api.post("/qagent/token-config", {
+        provider,
+        api_key: config.key.trim(),
+        model: config.model.trim(),
+        base_url: config.baseUrl.trim(),
+        instance_id: instanceId,
+      });
 
-      if (provider === "minimx" && instanceId && config.key.trim()) {
-        const command = buildMinimaxOnboardCommand(config.key.trim());
+      if ((provider === "minimx" || provider === "kimi") && instanceId && config.key.trim()) {
+        const command = buildOnboardCommand(provider, config.key.trim(), config.model);
         await api.post(`/qagent/exec/${instanceId}`, { command });
       }
 
@@ -104,13 +137,18 @@ const TokenConfigCard: React.FC<TokenConfigCardProps> = ({ instanceId }) => {
             key={p}
             type="button"
             onClick={() => handleSelectProvider(p)}
-            className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all ${
+            className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all flex items-center justify-center gap-2 ${
               provider === p
                 ? "border-blue-500 bg-blue-500/10 text-blue-400"
                 : "border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600"
             }`}
           >
             {PROVIDER_LABELS[p]}
+            {defaultProvider === p && (
+              <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-[10px] rounded border border-green-500/30">
+                默认
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -147,15 +185,15 @@ const TokenConfigCard: React.FC<TokenConfigCardProps> = ({ instanceId }) => {
               </label>
               <div className="relative">
                 <Cpu className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 z-10" />
-                {provider === "minimx" ? (
+                {provider === "minimx" || provider === "kimi" ? (
                   <select
                     value={config.model}
                     onChange={(e) => handleChange("model", e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all appearance-none"
                   >
-                    {MINIMX_MODELS.map((m) => (
-                      <option key={m} value={m} className="bg-slate-800">
-                        {m}
+                    {(provider === "minimx" ? MINIMX_MODELS : KIMI_MODELS).map((m) => (
+                      <option key={m.value} value={m.value} className="bg-slate-800">
+                        {m.label}
                       </option>
                     ))}
                   </select>
@@ -182,7 +220,12 @@ const TokenConfigCard: React.FC<TokenConfigCardProps> = ({ instanceId }) => {
                   value={config.baseUrl}
                   onChange={(e) => handleChange("baseUrl", e.target.value)}
                   placeholder="https://api.example.com/v1"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  disabled={provider === "minimx" || provider === "kimi"}
+                  className={`w-full pl-10 pr-4 py-2.5 border rounded-lg transition-all ${
+                    provider === "minimx" || provider === "kimi"
+                      ? "bg-slate-900 border-slate-800 text-slate-500 cursor-not-allowed"
+                      : "bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  }`}
                 />
               </div>
             </div>

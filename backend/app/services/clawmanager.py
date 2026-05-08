@@ -74,24 +74,30 @@ class ClawManagerClient:
         token = self._ensure_auth()
         headers = kwargs.pop("headers", {})
         headers["Authorization"] = f"Bearer {token}"
+        url = f"{self.base_url}{path}"
+        body = kwargs.get("json")
+        logger.info("ClawManager request: %s %s, body=%s", method, url, body)
+        timeout = kwargs.pop("timeout", 30)
         resp = httpx.request(
             method,
-            f"{self.base_url}{path}",
+            url,
             headers=headers,
-            timeout=30,
+            timeout=timeout,
             **kwargs,
         )
+        logger.info("ClawManager response: %s %s -> %s, body=%s", method, url, resp.status_code, resp.text)
         if resp.status_code == 401:
             self._login()
             token = self._access_token
             headers["Authorization"] = f"Bearer {token}"
             resp = httpx.request(
                 method,
-                f"{self.base_url}{path}",
+                url,
                 headers=headers,
-                timeout=30,
+                timeout=timeout,
                 **kwargs,
             )
+            logger.info("ClawManager retry response: %s %s -> %s, body=%s", method, url, resp.status_code, resp.text)
         if resp.is_error:
             try:
                 body = resp.json()
@@ -123,7 +129,7 @@ class ClawManagerClient:
         return self._request("GET", f"/api/v1/instances/{instance_id}/status")
 
     def exec_instance(self, instance_id: int, command: str) -> Dict[str, Any]:
-        return self._request("POST", f"/api/v1/instances/{instance_id}/exec", json={"command": command})
+        return self._request("POST", f"/api/v1/instances/{instance_id}/exec", json={"command": ["/bin/sh", "-c", command]}, timeout=300)
 
 
 clawmanager_client = ClawManagerClient()

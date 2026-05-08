@@ -45,6 +45,7 @@ class InstanceInfo(BaseModel):
     name: str
     instance_type: str
     skill_template: Optional[str] = None
+    default_provider: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -81,3 +82,24 @@ class QAgentInstanceStatus(BaseModel):
 
 class QAgentExecRequest(BaseModel):
     command: str
+
+
+class TokenConfigCreate(BaseModel):
+    provider: str
+    api_key: str
+    model: str
+    base_url: str
+    instance_id: Optional[int] = None
+
+
+class TokenConfigOut(BaseModel):
+    id: int
+    provider: str
+    api_key: str
+    model: str
+    base_url: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
