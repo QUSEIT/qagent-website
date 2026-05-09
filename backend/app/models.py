@@ -21,6 +21,7 @@ class User(Base):
 
     instances = relationship("Instance", back_populates="user", cascade="all, delete-orphan")
     token_configs = relationship("TokenConfig", back_populates="user", cascade="all, delete-orphan")
+    feishu_channels = relationship("FeishuChannel", back_populates="user", cascade="all, delete-orphan")
 
 
 class TokenConfig(Base):
@@ -38,6 +39,23 @@ class TokenConfig(Base):
     user = relationship("User", back_populates="token_configs")
 
 
+class FeishuChannel(Base):
+    __tablename__ = "feishu_channels"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    instance_id = Column(Integer, ForeignKey("instances.id"), nullable=False, index=True)
+    app_id = Column(String(100), nullable=False)
+    app_secret = Column(String(200), nullable=False)
+    owner_open_id = Column(String(100), nullable=True)
+    tenant_brand = Column(String(20), default="feishu", nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user = relationship("User", back_populates="feishu_channels")
+    instance = relationship("Instance", back_populates="feishu_channels")
+
+
 class Instance(Base):
     __tablename__ = "instances"
 
@@ -51,3 +69,4 @@ class Instance(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     user = relationship("User", back_populates="instances")
+    feishu_channels = relationship("FeishuChannel", back_populates="instance", cascade="all, delete-orphan")

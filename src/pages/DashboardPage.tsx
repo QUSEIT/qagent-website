@@ -653,7 +653,7 @@ const DashboardPage: React.FC = () => {
           ) : activeTab === "token" ? (
             <TokenConfigCard instanceId={selectedInstance?.id} defaultProvider={selectedInstance?.default_provider} />
           ) : (
-            <ChannelConfigCard />
+            <ChannelConfigCard instanceId={selectedInstance?.id} />
           )}
         </main>
       </div>

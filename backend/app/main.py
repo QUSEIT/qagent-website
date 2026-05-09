@@ -1,8 +1,20 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import init_db
 from app.routers import auth, qagent
+
+# Force app loggers to INFO so they are visible alongside uvicorn.access
+for _logger_name in ("app", "app.routers", "app.routers.qagent", "app.services", "app.services.clawmanager", "app.services.feishu"):
+    _logger = logging.getLogger(_logger_name)
+    _logger.setLevel(logging.INFO)
+    if not _logger.handlers:
+        _handler = logging.StreamHandler()
+        _handler.setLevel(logging.INFO)
+        _handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+        _logger.addHandler(_handler)
 
 init_db()
 

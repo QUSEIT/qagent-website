@@ -1,14 +1,23 @@
+import json
 import logging
 import re
+import shlex
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models import User, Instance, TokenConfig
-from app.schemas import QAgentStatus, QAgentCreateResponse, QAgentDeleteResponse, QAgentAccessResponse, QAgentInstanceStatus, QAgentExecRequest, InstanceInfo, TokenConfigCreate, TokenConfigOut
+from app.models import User, Instance, TokenConfig, FeishuChannel
+from app.schemas import (
+    QAgentStatus, QAgentCreateResponse, QAgentDeleteResponse, QAgentAccessResponse,
+    QAgentInstanceStatus, QAgentExecRequest, InstanceInfo,
+    TokenConfigCreate, TokenConfigOut,
+    FeishuQRResponse, FeishuPollResponse, FeishuChannelOut,
+)
 from app.services.clawmanager import clawmanager_client, ClawManagerError
+from app.services.feishu import create_session, get_session, delete_session, FeishuError
 
 logger = logging.getLogger(__name__)
 
@@ -310,3 +319,128 @@ def delete_qagent(
 
     message = "QAgent already removed; local record cleared" if already_gone else "QAgent deletion started"
     return QAgentDeleteResponse(message=message)
+
+
+@router.post("/channel/feishu/qr", response_model=FeishuQRResponse)
+def feishu_qr():
+    try:
+        result = create_session()
+        return FeishuQRResponse(**result)
+    except FeishuError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("Feishu QR generation failed")
+        raise HTTPException(status_code=500, detail=f"Failed to generate QR: {e}")
+
+
+@router.get("/channel/feishu/poll/{device_code}", response_model=FeishuPollResponse)
+def feishu_poll(
+    device_code: str,
+    instance_id: Optional[int] = None,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    session = get_session(device_code)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    try:
+        result = session.poll()
+    except FeishuError as e:
+        if e.code == "expired_token":
+            delete_session(device_code)
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("Feishu poll failed")
+        raise HTTPException(status_code=500, detail=f"Poll failed: {e}")
+
+    logger.info("Feishu poll result: status=%s, device_code=%s", result.get("status"), device_code)
+
+    if result["status"] == "success":
+        logger.info("Feishu poll success, app_id=%s, owner_open_id=%s", result.get("app_id"), result.get("owner_open_id"))
+        target_instance_id = instance_id
+        if not target_instance_id:
+            instance = db.query(Instance).filter(Instance.user_id == user.id).order_by(Instance.created_at.desc()).first()
+            if instance:
+                target_instance_id = instance.id
+
+        logger.info("Feishu save target: instance_id=%s", target_instance_id)
+
+        if target_instance_id:
+            instance = db.query(Instance).filter(Instance.id == target_instance_id, Instance.user_id == user.id).first()
+            if instance:
+                logger.info("Feishu instance found: id=%s, cm_id=%s", instance.id, instance.clawmanager_instance_id)
+                existing = db.query(FeishuChannel).filter(FeishuChannel.instance_id == target_instance_id).first()
+                if existing:
+                    existing.app_id = result["app_id"]
+                    existing.app_secret = result["app_secret"]
+                    existing.owner_open_id = result.get("owner_open_id")
+                    existing.tenant_brand = result.get("tenant_brand", "feishu")
+                else:
+                    channel = FeishuChannel(
+                        user_id=user.id,
+                        instance_id=target_instance_id,
+                        app_id=result["app_id"],
+                        app_secret=result["app_secret"],
+                        owner_open_id=result.get("owner_open_id"),
+                        tenant_brand=result.get("tenant_brand", "feishu"),
+                    )
+                    db.add(channel)
+                db.commit()
+
+                # Configure OpenClaw via pod exec
+                app_id = result["app_id"]
+                app_secret = result["app_secret"]
+                owner_open_id = result.get("owner_open_id")
+                tenant_brand = result.get("tenant_brand", "feishu")
+                config_items = [
+                    {"path": "channels.feishu.enabled", "value": True},
+                    {"path": "channels.feishu.appId", "value": app_id},
+                    {"path": "channels.feishu.appSecret", "value": app_secret},
+                    {"path": "channels.feishu.domain", "value": tenant_brand},
+                    {"path": "channels.feishu.dmPolicy", "value": "allowlist"},
+                    {"path": "channels.feishu.allowFrom", "value": [owner_open_id] if owner_open_id else []},
+                    {"path": "channels.feishu.groupPolicy", "value": "allowlist"},
+                ]
+                batch_json = json.dumps(config_items, ensure_ascii=False)
+                command = f"openclaw config set --batch-json {shlex.quote(batch_json)}"
+                logger.info(
+                    "Executing ClawManager exec for feishu config (instance_id=%s, cm_id=%s)",
+                    instance.id,
+                    instance.clawmanager_instance_id,
+                )
+                logger.info("Exec command: %s", command)
+                try:
+                    exec_result = clawmanager_client.exec_instance(instance.clawmanager_instance_id, command)
+                    logger.info(
+                        "ClawManager exec succeeded for feishu config (instance_id=%s, result=%s)",
+                        instance.id,
+                        exec_result,
+                    )
+                except Exception:
+                    logger.exception(
+                        "ClawManager exec failed for feishu config (instance_id=%s, cm_id=%s)",
+                        instance.id,
+                        instance.clawmanager_instance_id,
+                    )
+        delete_session(device_code)
+        return FeishuPollResponse(
+            status="success",
+            app_id=result["app_id"],
+            owner_open_id=result.get("owner_open_id"),
+            tenant_brand=result.get("tenant_brand", "feishu"),
+        )
+
+    if result["status"] == "failed":
+        delete_session(device_code)
+        return FeishuPollResponse(status="failed", error=result.get("error"))
+
+    return FeishuPollResponse(status="pending")
+
+
+@router.get("/channel/feishu/{instance_id}", response_model=FeishuChannelOut)
+def get_feishu_channel(instance_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    channel = db.query(FeishuChannel).filter(FeishuChannel.instance_id == instance_id, FeishuChannel.user_id == user.id).first()
+    if not channel:
+        raise HTTPException(status_code=404, detail="Feishu channel not found")
+    return channel

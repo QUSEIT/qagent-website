@@ -103,3 +103,30 @@ class TokenConfigOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class FeishuQRResponse(BaseModel):
+    device_code: str
+    qr_url: str
+    interval: int
+    expire_in: int
+
+
+class FeishuPollResponse(BaseModel):
+    status: str
+    app_id: Optional[str] = None
+    owner_open_id: Optional[str] = None
+    tenant_brand: Optional[str] = None
+    error: Optional[str] = None
+
+
+class FeishuChannelOut(BaseModel):
+    id: int
+    instance_id: int
+    app_id: str
+    owner_open_id: Optional[str] = None
+    tenant_brand: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
