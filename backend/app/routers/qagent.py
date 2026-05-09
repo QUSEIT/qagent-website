@@ -9,15 +9,17 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models import User, Instance, TokenConfig, FeishuChannel
+from app.models import User, Instance, TokenConfig, FeishuChannel, QQChannel
 from app.schemas import (
     QAgentStatus, QAgentCreateResponse, QAgentDeleteResponse, QAgentAccessResponse,
     QAgentInstanceStatus, QAgentExecRequest, InstanceInfo,
     TokenConfigCreate, TokenConfigOut,
     FeishuQRResponse, FeishuPollResponse, FeishuChannelOut,
+    QQQRResponse, QQPollResponse, QQChannelOut,
 )
 from app.services.clawmanager import clawmanager_client, ClawManagerError
 from app.services.feishu import create_session, get_session, delete_session, FeishuError
+from app.services.qqbot import create_session as create_qq_session, get_session as get_qq_session, delete_session as delete_qq_session, QQBotError
 
 logger = logging.getLogger(__name__)
 
@@ -461,4 +463,106 @@ def get_feishu_channel(instance_id: int, user: User = Depends(get_current_user),
     channel = db.query(FeishuChannel).filter(FeishuChannel.instance_id == instance_id, FeishuChannel.user_id == user.id).first()
     if not channel:
         raise HTTPException(status_code=404, detail="Feishu channel not found")
+    return channel
+
+
+@router.post("/channel/qq/qr", response_model=QQQRResponse)
+def qq_qr():
+    try:
+        result = create_qq_session()
+        return QQQRResponse(**result)
+    except QQBotError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("QQBot QR generation failed")
+        raise HTTPException(status_code=500, detail=f"Failed to generate QR: {e}")
+
+
+@router.get("/channel/qq/poll/{session_id}", response_model=QQPollResponse)
+def qq_poll(
+    session_id: str,
+    instance_id: Optional[int] = None,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    session = get_qq_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    status = session.get("status")
+
+    if status == "success":
+        credentials = session.get("credentials", [])
+        if not credentials:
+            delete_qq_session(session_id)
+            raise HTTPException(status_code=500, detail="No credentials returned")
+        cred = credentials[0]
+        app_id = cred.get("appId")
+        app_secret = cred.get("appSecret")
+
+        target_instance_id = instance_id
+        if not target_instance_id:
+            instance = db.query(Instance).filter(Instance.user_id == user.id).order_by(Instance.created_at.desc()).first()
+            if instance:
+                target_instance_id = instance.id
+
+        if target_instance_id:
+            instance = db.query(Instance).filter(Instance.id == target_instance_id, Instance.user_id == user.id).first()
+            if instance:
+                existing = db.query(QQChannel).filter(QQChannel.instance_id == target_instance_id).first()
+                if existing:
+                    existing.app_id = app_id
+                    existing.app_secret = app_secret
+                else:
+                    channel = QQChannel(
+                        user_id=user.id,
+                        instance_id=target_instance_id,
+                        app_id=app_id,
+                        app_secret=app_secret,
+                    )
+                    db.add(channel)
+                db.commit()
+
+                # Configure OpenClaw via pod exec
+                config_items = [
+                    {"path": "channels.qqbot.enabled", "value": True},
+                    {"path": "channels.qqbot.appId", "value": app_id},
+                    {"path": "channels.qqbot.clientSecret", "value": app_secret},
+                ]
+                batch_json = json.dumps(config_items, ensure_ascii=False)
+                command = f"openclaw config set --batch-json {shlex.quote(batch_json)}"
+                logger.info(
+                    "Executing ClawManager exec for qqbot config (instance_id=%s, cm_id=%s)",
+                    instance.id,
+                    instance.clawmanager_instance_id,
+                )
+                logger.info("Exec command: %s", command)
+                try:
+                    exec_result = clawmanager_client.exec_instance(instance.clawmanager_instance_id, command)
+                    logger.info(
+                        "ClawManager exec succeeded for qqbot config (instance_id=%s, result=%s)",
+                        instance.id,
+                        exec_result,
+                    )
+                except Exception:
+                    logger.exception(
+                        "ClawManager exec failed for qqbot config (instance_id=%s, cm_id=%s)",
+                        instance.id,
+                        instance.clawmanager_instance_id,
+                    )
+        delete_qq_session(session_id)
+        return QQPollResponse(status="success", app_id=app_id)
+
+    if status == "error":
+        delete_qq_session(session_id)
+        return QQPollResponse(status="failed", error=session.get("error"))
+
+    return QQPollResponse(status="pending")
+
+
+@router.get("/channel/qq/{instance_id}", response_model=QQChannelOut)
+def get_qq_channel(instance_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    channel = db.query(QQChannel).filter(QQChannel.instance_id == instance_id, QQChannel.user_id == user.id).first()
+    if not channel:
+        raise HTTPException(status_code=404, detail="QQ channel not found")
     return channel

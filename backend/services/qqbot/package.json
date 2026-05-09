@@ -1,0 +1,17 @@
+{
+  "name": "qagent-qqbot-service",
+  "version": "1.0.0",
+  "description": "QQ Bot QR registration bridge for QAgent",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@tencent-connect/qqbot-connector": "^1.1.0",
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

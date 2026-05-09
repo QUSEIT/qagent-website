@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     server_port: int = 8000
-    database_url: str = "sqlite:///./qagent.db"
+    database_url: str = "sqlite:///./data/qagent.db"
     jwt_secret: str = "change-me-in-production"
     jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 7
@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 
 settings = Settings()

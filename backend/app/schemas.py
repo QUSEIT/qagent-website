@@ -130,3 +130,26 @@ class FeishuChannelOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class QQQRResponse(BaseModel):
+    session_id: str
+    qr_url: Optional[str] = None
+    status: str
+
+
+class QQPollResponse(BaseModel):
+    status: str
+    app_id: Optional[str] = None
+    app_secret: Optional[str] = None
+    error: Optional[str] = None
+
+
+class QQChannelOut(BaseModel):
+    id: int
+    instance_id: int
+    app_id: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

@@ -7,7 +7,7 @@ from app.database import init_db
 from app.routers import auth, qagent
 
 # Force app loggers to INFO so they are visible alongside uvicorn.access
-for _logger_name in ("app", "app.routers", "app.routers.qagent", "app.services", "app.services.clawmanager", "app.services.feishu"):
+for _logger_name in ("app", "app.routers", "app.routers.qagent", "app.services", "app.services.clawmanager", "app.services.feishu", "app.services.qqbot"):
     _logger = logging.getLogger(_logger_name)
     _logger.setLevel(logging.INFO)
     if not _logger.handlers:

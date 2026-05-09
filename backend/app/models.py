@@ -22,6 +22,7 @@ class User(Base):
     instances = relationship("Instance", back_populates="user", cascade="all, delete-orphan")
     token_configs = relationship("TokenConfig", back_populates="user", cascade="all, delete-orphan")
     feishu_channels = relationship("FeishuChannel", back_populates="user", cascade="all, delete-orphan")
+    qq_channels = relationship("QQChannel", back_populates="user", cascade="all, delete-orphan")
 
 
 class TokenConfig(Base):
@@ -56,6 +57,21 @@ class FeishuChannel(Base):
     instance = relationship("Instance", back_populates="feishu_channels")
 
 
+class QQChannel(Base):
+    __tablename__ = "qq_channels"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    instance_id = Column(Integer, ForeignKey("instances.id"), nullable=False, index=True)
+    app_id = Column(String(100), nullable=False)
+    app_secret = Column(String(200), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user = relationship("User", back_populates="qq_channels")
+    instance = relationship("Instance", back_populates="qq_channels")
+
+
 class Instance(Base):
     __tablename__ = "instances"
 
@@ -70,3 +86,4 @@ class Instance(Base):
 
     user = relationship("User", back_populates="instances")
     feishu_channels = relationship("FeishuChannel", back_populates="instance", cascade="all, delete-orphan")
+    qq_channels = relationship("QQChannel", back_populates="instance", cascade="all, delete-orphan")
