@@ -69,6 +69,9 @@ const DashboardPage: React.FC = () => {
   const [instanceName, setInstanceName] = useState("我的 QAgent");
   const [instanceType, setInstanceType] = useState<InstanceType>("OpenClaw");
   const [skillTemplate, setSkillTemplate] = useState<SkillTemplate>("none");
+  const [cpuCores, setCpuCores] = useState<number>(1);
+  const [memoryGb, setMemoryGb] = useState<number>(4);
+  const [diskGb, setDiskGb] = useState<number>(20);
   const [error, setError] = useState("");
   const [accessInfo, setAccessInfo] = useState<{
     proxy_url: string;
@@ -147,7 +150,16 @@ const DashboardPage: React.FC = () => {
     setIsCreating(true);
 
     try {
-      await api.post("/qagent/create", null, { params: { name: instanceName, type: instanceType, skill: skillTemplate } });
+      await api.post("/qagent/create", null, {
+        params: {
+          name: instanceName,
+          type: instanceType,
+          skill: skillTemplate,
+          cpu_cores: cpuCores,
+          memory_gb: memoryGb,
+          disk_gb: diskGb,
+        },
+      });
       await refreshUser();
       await fetchStatus();
       setShowCreateForm(false);
@@ -441,21 +453,54 @@ const DashboardPage: React.FC = () => {
                           <Cpu className="w-4 h-4 text-amber-400" />
                           <span className="text-slate-300 text-sm font-medium">CPU</span>
                         </div>
-                        <p className="text-white text-lg font-bold">1 核</p>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0.1"
+                            value={cpuCores}
+                            onChange={(e) => setCpuCores(parseFloat(e.target.value) || 0.1)}
+                            className="w-20 bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-white text-lg font-bold focus:outline-none focus:border-amber-500"
+                          />
+                          <span className="text-slate-400 text-sm">核</span>
+                        </div>
                       </div>
                       <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <Zap className="w-4 h-4 text-blue-400" />
                           <span className="text-slate-300 text-sm font-medium">内存</span>
                         </div>
-                        <p className="text-white text-lg font-bold">4 GB</p>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            step="1"
+                            min="1"
+                            value={memoryGb}
+                            onChange={(e) => setMemoryGb(parseInt(e.target.value, 10) || 1)}
+                            className="w-20 bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-white text-lg font-bold focus:outline-none focus:border-blue-500"
+                          />
+                          <span className="text-slate-400 text-sm">GB</span>
+                        </div>
                       </div>
                       <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <Server className="w-4 h-4 text-green-400" />
                           <span className="text-slate-300 text-sm font-medium">磁盘</span>
                         </div>
-                        <p className="text-white text-lg font-bold">20 GB</p>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            step="1"
+                            min="10"
+                            value={diskGb}
+                            onChange={(e) => setDiskGb(parseInt(e.target.value, 10) || 10)}
+                            className={`w-20 bg-slate-900 border rounded-lg px-3 py-1.5 text-white text-lg font-bold focus:outline-none ${diskGb < 10 ? "border-red-500 focus:border-red-500" : "border-slate-600 focus:border-green-500"}`}
+                          />
+                          <span className="text-slate-400 text-sm">GB</span>
+                        </div>
+                        {diskGb < 10 && (
+                          <p className="text-red-400 text-xs mt-1.5">磁盘不能小于 10 GB</p>
+                        )}
                       </div>
                     </div>
 
@@ -475,7 +520,7 @@ const DashboardPage: React.FC = () => {
                     </button>
                     <button
                       type="submit"
-                      disabled={isCreating}
+                      disabled={isCreating || diskGb < 10}
                       className="flex-1 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:shadow-xl hover:shadow-amber-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isCreating ? (

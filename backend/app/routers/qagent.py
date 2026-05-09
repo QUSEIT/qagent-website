@@ -23,14 +23,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/qagent", tags=["qagent"])
 
-DEFAULT_QAGENT_CONFIG = {
-    "cpu_cores": 1,
-    "memory_gb": 4,
-    "disk_gb": 20,
-    "gpu_enabled": False,
-    "gpu_count": 0,
-}
-
 TYPE_MAP = {
     "OpenClaw": "openclaw",
     "HermesAgent": "hermes",
@@ -83,6 +75,9 @@ def create_qagent(
     name: str = "我的 QAgent",
     instance_type: str = Query("OpenClaw", alias="type"),
     skill_template: str = Query("none", alias="skill"),
+    cpu_cores: float = Query(1.0),
+    memory_gb: int = Query(4),
+    disk_gb: int = Query(20),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -91,11 +86,17 @@ def create_qagent(
         raise HTTPException(status_code=400, detail="已达到最大实例数量限制")
     if user.max_instances <= 0:
         raise HTTPException(status_code=403, detail="您没有开通QAgent的权限，请联系管理员")
+    if disk_gb < 10:
+        raise HTTPException(status_code=400, detail="磁盘容量不能小于10GB")
 
     safe_name = _k8s_safe_name(name, fallback=f"qagent-{user.id}")
     type_os = TYPE_OS_MAP.get(instance_type, {"os_type": "ubuntu", "os_version": "22.04"})
     payload = {
-        **DEFAULT_QAGENT_CONFIG,
+        "cpu_cores": cpu_cores,
+        "memory_gb": memory_gb,
+        "disk_gb": disk_gb,
+        "gpu_enabled": False,
+        "gpu_count": 0,
         **type_os,
         "name": safe_name,
         "type": TYPE_MAP.get(instance_type, "openclaw"),
@@ -313,6 +314,23 @@ def delete_qagent(
             status_code=500,
             detail=f"Failed to delete instance: {type(e).__name__}: {e}",
         )
+
+    # Clean up token config if no other instance uses the same provider
+    if instance.default_provider:
+        other_using = (
+            db.query(Instance)
+            .filter(
+                Instance.user_id == user.id,
+                Instance.id != instance.id,
+                Instance.default_provider == instance.default_provider,
+            )
+            .first()
+        )
+        if not other_using:
+            db.query(TokenConfig).filter(
+                TokenConfig.user_id == user.id,
+                TokenConfig.provider == instance.default_provider,
+            ).delete()
 
     db.delete(instance)
     db.commit()
