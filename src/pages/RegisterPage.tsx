@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, User, Lock, ArrowRight, Sparkles } from "lucide-react";
+import { Mail, User, Lock, ArrowRight, Sparkles, Building2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 const RegisterPage: React.FC = () => {
@@ -10,6 +10,7 @@ const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [orgCode, setOrgCode] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -24,7 +25,7 @@ const RegisterPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      await register(email, username, password);
+      await register(email, username, password, orgCode);
       navigate("/dashboard");
     } catch (err: any) {
       setError(err.response?.data?.detail || "注册失败，请重试");
@@ -90,6 +91,22 @@ const RegisterPage: React.FC = () => {
                   minLength={3}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
                   placeholder="选择一个用户名"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">机构编码</label>
+              <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                <input
+                  type="text"
+                  value={orgCode}
+                  onChange={(e) => setOrgCode(e.target.value)}
+                  required
+                  minLength={4}
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
+                  placeholder="请输入机构编码"
                 />
               </div>
             </div>

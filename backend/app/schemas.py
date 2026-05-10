@@ -16,6 +16,7 @@ class UserBase(BaseModel):
 
 class UserRegister(UserBase):
     password: str = Field(..., min_length=6)
+    org_code: str = Field(..., min_length=4, max_length=50)
 
 
 class UserLogin(BaseModel):

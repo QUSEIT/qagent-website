@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.auth import get_password_hash, verify_password, create_access_token, create_refresh_token, decode_token
 from app.dependencies import get_current_user
-from app.models import User
+from app.models import User, Organization
 from app.schemas import UserRegister, UserLogin, UserOut, TokenPair, RefreshTokenRequest
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -12,6 +12,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=TokenPair)
 def register(data: UserRegister, db: Session = Depends(get_db)):
+    org = db.query(Organization).filter(Organization.code == data.org_code).first()
+    if not org:
+        raise HTTPException(status_code=400, detail="Organization not registered")
+
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
     if db.query(User).filter(User.username == data.username).first():
@@ -21,11 +25,15 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
         email=data.email,
         username=data.username,
         password_hash=get_password_hash(data.password),
+        org_code=data.org_code,
         max_instances=0,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    org.user_count += 1
+    db.commit()
 
     return TokenPair(
         access_token=create_access_token(user.id),

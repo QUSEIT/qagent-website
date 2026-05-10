@@ -1,7 +1,22 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Date
 from sqlalchemy.orm import relationship
 from app.database import Base
+
+
+class Organization(Base):
+    __tablename__ = "organizations"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    code = Column(String(50), unique=True, index=True, nullable=False)
+    name = Column(String(100), nullable=False)
+    user_count = Column(Integer, default=0, nullable=False)
+    instance_count = Column(Integer, default=0, nullable=False)
+    created_at = Column(Date, nullable=False, default=datetime.utcnow)
+    expired_at = Column(Date, nullable=True)
+    created_date = Column(Date, nullable=False, default=datetime.utcnow)
+
+    users = relationship("User", back_populates="organization")
 
 
 class User(Base):
@@ -11,6 +26,7 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     username = Column(String(50), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
+    org_code = Column(String(50), ForeignKey("organizations.code"), nullable=False, index=True)
     qagent_instance_id = Column(Integer, nullable=True)
     qagent_instance_type = Column(String(50), nullable=True)
     qagent_instance_name = Column(String(100), nullable=True)
@@ -19,6 +35,7 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+    organization = relationship("Organization", back_populates="users")
     instances = relationship("Instance", back_populates="user", cascade="all, delete-orphan")
     token_configs = relationship("TokenConfig", back_populates="user", cascade="all, delete-orphan")
     feishu_channels = relationship("FeishuChannel", back_populates="user", cascade="all, delete-orphan")
