@@ -6,7 +6,7 @@ import {
   PenTool, Code, ChevronRight, ChevronLeft, Menu, X, Github, Twitter, Linkedin, Mail,
   Server, Box, Layers, Terminal, CheckCircle, ArrowRight, Sparkles,
   MessageSquare, FileText, Globe, Briefcase, Home, TrendingUp, Edit3,
-  Laptop, Search, MapPin,
+  Laptop, Search, MapPin, GraduationCap, ShoppingCart, Building2,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import qrcodeImg from "../assets/qrcode.jpg";
@@ -92,6 +92,9 @@ const LandingPage: React.FC = () => {
               <button onClick={() => scrollToSection("showcase")} className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
                 应用场景
               </button>
+              <button onClick={() => scrollToSection("cases")} className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
+                合作案例
+              </button>
               <button onClick={() => scrollToSection("contact")} className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
                 联系我们
               </button>
@@ -147,6 +150,9 @@ const LandingPage: React.FC = () => {
                 </button>
                 <button onClick={() => scrollToSection("showcase")} className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
                   应用场景
+                </button>
+                <button onClick={() => scrollToSection("cases")} className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
+                  合作案例
                 </button>
                 <button onClick={() => scrollToSection("contact")} className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
                   联系我们
@@ -407,18 +413,21 @@ const LandingPage: React.FC = () => {
                 desc: "适合个人爱好者与学习研究。基于开源版本自行部署，社区提供技术支持。",
                 points: ["开源版本完全免费", "社区论坛技术支持", "文档与教程支持"],
                 btn: "联系我们",
+                badge: "",
               },
               {
                 icon: Settings, color: "blue", title: "按需部署",
                 desc: "适合企业用户。由我们提供专业的私有化部署实施服务，支持单节点与多节点容器集群。",
                 points: ["专业团队部署实施", "集群高可用架构", "按需定制配置"],
                 btn: "联系我们",
+                badge: "",
               },
               {
                 icon: Layers, color: "red", title: "技能定制",
                 desc: "针对特殊业务场景的个性化数字员工技能开发。基于现有能力进行深度定制，满足独特业务需求。",
                 points: ["深度技能定制", "专属工作流编排", "源码级交付"],
                 btn: "需求评估",
+                badge: "",
               },
             ].map((plan, i) => (
               <motion.div
@@ -663,6 +672,109 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Cases Section */}
+      <section id="cases" className="py-20 lg:py-32 bg-slate-900 relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
+                合作案例
+              </span>
+            </h2>
+            <p className="text-slate-400 max-w-2xl mx-auto text-lg">
+              真实客户，真实场景，真实价值
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+            {[
+              {
+                icon: GraduationCap, color: "blue", title: "教育机构",
+                subtitle: "智能教学全链路升级",
+                desc: "借助QAgent框架，充分应用智能体改进备课、课堂辅助、作业批改、学情分析全链路教学环节，释放教师精力。",
+                points: ["智能备课", "作业智能批改", "学情分析报告"],
+              },
+              {
+                icon: ShoppingCart, color: "green", title: "电商公司",
+                subtitle: "全流程业务智能化",
+                desc: "充分应用OpenClaw/HermesAgent，实现从市场洞察、Listing优化、智能客服到数据分析的全流程智能化，月均节省大量人力成本。",
+                points: ["市场分析", "Listing优化", "智能客服", "数据分析"],
+              },
+              {
+                icon: Building2, color: "amber", title: "企业孵化器",
+                subtitle: "数字员工技术底座",
+                desc: "引入QAgent体系，为入孵企业提供数字员工技术底座，帮助创业团队快速拥有智能运营能力，降低运营成本。",
+                points: ["数字员工定制", "SOP自动化", "智能运营支撑"],
+              },
+              {
+                icon: Briefcase, color: "red", title: "企业服务公司",
+                subtitle: "传统业务AI化升级",
+                desc: "通过QAgent技术底座，将传统业务流程AI化、标准化，形成可复制的服务SOP，大幅提升服务交付效率与客户满意度。",
+                points: ["业务AI化", "SOP标准化", "服务效率提升"],
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={item.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: i * 0.1 }}
+                className="group"
+              >
+                <div className={`h-full bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-${item.color}-500/50 transition-all hover:shadow-xl hover:shadow-${item.color}-500/10`}>
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className={`w-12 h-12 bg-${item.color}-500/10 rounded-xl flex items-center justify-center flex-shrink-0`}>
+                      <item.icon className={`w-6 h-6 text-${item.color}-400`} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white mb-1">{item.title}</h3>
+                      <p className={`text-${item.color}-400 text-sm font-medium`}>{item.subtitle}</p>
+                    </div>
+                  </div>
+                  <p className="text-slate-400 text-sm leading-relaxed mb-4">{item.desc}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {item.points.map((p) => (
+                      <span
+                        key={p}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-${item.color}-500/10 text-${item.color}-400 text-xs font-medium`}
+                      >
+                        <CheckCircle className="w-3 h-3" />
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            className="mt-12 text-center"
+          >
+            <div className="inline-flex flex-col sm:flex-row items-center gap-4 p-6 bg-slate-900/50 border border-slate-800 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+                <span className="text-slate-300">更多案例正在加入中？</span>
+              </div>
+              <a href="#contact" className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-medium hover:shadow-lg hover:shadow-amber-500/30 transition-all flex items-center gap-2">
+                联系我们合作
+                <ChevronRight className="w-4 h-4" />
+              </a>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Contact Section */}
       <section id="contact" className="py-20 lg:py-24 bg-slate-950 relative">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -797,6 +909,8 @@ const LandingPage: React.FC = () => {
                 <li><button onClick={() => scrollToSection("principle")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">技术原理</button></li>
                 <li><button onClick={() => scrollToSection("deployment")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">服务方式</button></li>
                 <li><button onClick={() => scrollToSection("pricing")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">收费模式</button></li>
+                <li><button onClick={() => scrollToSection("showcase")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">应用场景</button></li>
+                <li><button onClick={() => scrollToSection("cases")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">合作案例</button></li>
                 <li><button onClick={() => scrollToSection("contact")} className="text-slate-400 hover:text-amber-400 text-sm transition-colors">联系我们</button></li>
               </ul>
             </div>
