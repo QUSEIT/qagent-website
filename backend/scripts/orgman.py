@@ -3,8 +3,12 @@
 import sys
 import argparse
 from datetime import datetime, date
+from pathlib import Path
 
-sys.path.insert(0, "/home/quseit/Projects/qagent-website/backend")
+# Dynamically resolve backend root relative to this script
+SCRIPT_DIR = Path(__file__).resolve().parent
+BACKEND_ROOT = SCRIPT_DIR.parent
+sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.database import SessionLocal, init_db
 from app.models import Organization
