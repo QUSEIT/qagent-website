@@ -672,6 +672,69 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
+      
+      {/* Contact Section */}
+      <section id="contact" className="py-20 lg:py-24 bg-slate-950 relative">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
+                联系我们
+              </span>
+            </h2>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="space-y-4"
+            >
+              <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex items-start gap-4">
+                <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center shrink-0">
+                  <MapPin className="w-6 h-6 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold mb-2">公司地址</h3>
+                  <p className="text-slate-400 text-sm">北京市海淀区永澄北路2号院1号楼一层A1839</p>
+                </div>
+              </div>
+              <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex items-start gap-4">
+                <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center shrink-0">
+                  <Mail className="w-6 h-6 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold mb-2">联系邮件</h3>
+                  <a href="mailto:ceo@quseit.com" className="text-amber-400 text-sm hover:underline">ceo@quseit.com</a>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="flex flex-col items-center justify-center"
+            >
+              <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center mb-4">
+                <MessageSquare className="w-6 h-6 text-amber-400" />
+              </div>
+              <h3 className="text-white font-semibold mb-4">联系微信</h3>
+              <img src={qrcodeImg} alt="联系微信二维码" className="w-28 h-28 rounded-xl object-cover" />
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* Cases Section */}
       <section id="cases" className="py-20 lg:py-32 bg-slate-900 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -772,68 +835,6 @@ const LandingPage: React.FC = () => {
               </a>
             </div>
           </motion.div>
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section id="contact" className="py-20 lg:py-24 bg-slate-950 relative">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
-                联系我们
-              </span>
-            </h2>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="space-y-4"
-            >
-              <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex items-start gap-4">
-                <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center shrink-0">
-                  <MapPin className="w-6 h-6 text-amber-400" />
-                </div>
-                <div>
-                  <h3 className="text-white font-semibold mb-2">公司地址</h3>
-                  <p className="text-slate-400 text-sm">北京市海淀区永澄北路2号院1号楼一层A1839</p>
-                </div>
-              </div>
-              <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex items-start gap-4">
-                <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center shrink-0">
-                  <Mail className="w-6 h-6 text-amber-400" />
-                </div>
-                <div>
-                  <h3 className="text-white font-semibold mb-2">联系邮件</h3>
-                  <a href="mailto:ceo@quseit.com" className="text-amber-400 text-sm hover:underline">ceo@quseit.com</a>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="flex flex-col items-center justify-center"
-            >
-              <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center mb-4">
-                <MessageSquare className="w-6 h-6 text-amber-400" />
-              </div>
-              <h3 className="text-white font-semibold mb-4">联系微信</h3>
-              <img src={qrcodeImg} alt="联系微信二维码" className="w-28 h-28 rounded-xl object-cover" />
-            </motion.div>
-          </div>
         </div>
       </section>
 
