@@ -124,6 +124,9 @@ def create_qagent(
         name=name,
         instance_type=instance_type,
         skill_template=skill_template,
+        cpu_cores=cpu_cores,
+        memory_gb=memory_gb,
+        disk_gb=disk_gb,
     )
     db.add(instance)
     db.commit()
@@ -524,13 +527,8 @@ def qq_poll(
                 db.commit()
 
                 # Configure OpenClaw via pod exec
-                config_items = [
-                    {"path": "channels.qqbot.enabled", "value": True},
-                    {"path": "channels.qqbot.appId", "value": app_id},
-                    {"path": "channels.qqbot.clientSecret", "value": app_secret},
-                ]
-                batch_json = json.dumps(config_items, ensure_ascii=False)
-                command = f"openclaw config set --batch-json {shlex.quote(batch_json)}"
+                token = f"{app_id}:{app_secret}"
+                command = f"openclaw channels add --channel qqbot --token {shlex.quote(token)}"
                 logger.info(
                     "Executing ClawManager exec for qqbot config (instance_id=%s, cm_id=%s)",
                     instance.id,

@@ -46,6 +46,9 @@ class InstanceInfo(BaseModel):
     instance_type: str
     skill_template: Optional[str] = None
     default_provider: Optional[str] = None
+    cpu_cores: float = 1.0
+    memory_gb: int = 4
+    disk_gb: int = 20
     created_at: datetime
 
     class Config:

@@ -40,6 +40,15 @@ def init_db():
             if "default_provider" not in inst_columns:
                 conn.execute(text("ALTER TABLE instances ADD COLUMN default_provider VARCHAR(50)"))
                 conn.commit()
+            if "cpu_cores" not in inst_columns:
+                conn.execute(text("ALTER TABLE instances ADD COLUMN cpu_cores REAL DEFAULT 1.0"))
+                conn.commit()
+            if "memory_gb" not in inst_columns:
+                conn.execute(text("ALTER TABLE instances ADD COLUMN memory_gb INTEGER DEFAULT 4"))
+                conn.commit()
+            if "disk_gb" not in inst_columns:
+                conn.execute(text("ALTER TABLE instances ADD COLUMN disk_gb INTEGER DEFAULT 20"))
+                conn.commit()
 
             # Migrate legacy single-instance data to instances table
             result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='instances'"))

@@ -72,6 +72,8 @@ class QQChannel(Base):
     instance = relationship("Instance", back_populates="qq_channels")
 
 
+from sqlalchemy import Float
+
 class Instance(Base):
     __tablename__ = "instances"
 
@@ -82,6 +84,9 @@ class Instance(Base):
     instance_type = Column(String(50), nullable=False)
     skill_template = Column(String(50), nullable=True)
     default_provider = Column(String(50), nullable=True)
+    cpu_cores = Column(Float, nullable=False, default=1.0)
+    memory_gb = Column(Integer, nullable=False, default=4)
+    disk_gb = Column(Integer, nullable=False, default=20)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     user = relationship("User", back_populates="instances")

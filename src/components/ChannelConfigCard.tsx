@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, QrCode, Loader2, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import QRCode from "qrcode";
 import api from "../services/api";
 
-type ChannelType = "feishu" | "wechat" | "qq";
+type ChannelType = "feishu" | "qq";
 
 interface ChannelConfigCardProps {
   instanceId?: number;
@@ -18,18 +18,14 @@ const CHANNEL_META: Record<
     label: "飞书",
     desc: "通过飞书机器人与 QAgent 交互",
   },
-  wechat: {
-    label: "微信",
-    desc: "通过微信与 QAgent 交互",
-  },
   qq: {
     label: "QQ",
     desc: "通过 QQ 群机器人与 QAgent 交互",
   },
 };
 
-type FeishuState = "idle" | "loading" | "scanning" | "success" | "error";
-type QQState = "idle" | "loading" | "scanning" | "success" | "error";
+type FeishuState = "loading" | "scanning" | "success" | "error";
+type QQState = "loading" | "scanning" | "success" | "error";
 
 interface FeishuConfig {
   app_id: string;
@@ -43,66 +39,25 @@ interface QQConfig {
 
 const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => {
   const [channel, setChannel] = useState<ChannelType | null>(null);
-  const [feishuState, setFeishuState] = useState<FeishuState>("idle");
+  const [feishuState, setFeishuState] = useState<FeishuState>("loading");
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [deviceCode, setDeviceCode] = useState<string>("");
   const [intervalSec, setIntervalSec] = useState<number>(5);
   const [error, setError] = useState<string>("");
   const [feishuConfig, setFeishuConfig] = useState<FeishuConfig | null>(null);
 
-  const [qqState, setQQState] = useState<QQState>("idle");
+  const [qqState, setQQState] = useState<QQState>("loading");
   const [qqQrDataUrl, setQQQrDataUrl] = useState<string>("");
   const [qqQrUrl, setQQQrUrl] = useState<string>("");
   const [qqSessionId, setQQSessionId] = useState<string>("");
   const [qqConfig, setQQConfig] = useState<QQConfig | null>(null);
-
-  const fetchExistingConfig = useCallback(async () => {
-    if (!instanceId) return;
-    try {
-      const res = await api.get(`/qagent/channel/feishu/${instanceId}`);
-      setFeishuConfig({
-        app_id: res.data.app_id,
-        owner_open_id: res.data.owner_open_id,
-        tenant_brand: res.data.tenant_brand,
-      });
-      setFeishuState("success");
-    } catch (err: any) {
-      if (err.response?.status !== 404) {
-        setError(err.response?.data?.detail || "获取配置失败");
-      }
-    }
-  }, [instanceId]);
-
-  const fetchExistingQQConfig = useCallback(async () => {
-    if (!instanceId) return;
-    try {
-      const res = await api.get(`/qagent/channel/qq/${instanceId}`);
-      setQQConfig({
-        app_id: res.data.app_id,
-      });
-      setQQState("success");
-    } catch (err: any) {
-      if (err.response?.status !== 404) {
-        setError(err.response?.data?.detail || "获取配置失败");
-      }
-    }
-  }, [instanceId]);
-
-  useEffect(() => {
-    if (channel === "feishu") {
-      fetchExistingConfig();
-    }
-    if (channel === "qq") {
-      fetchExistingQQConfig();
-    }
-  }, [channel, fetchExistingConfig, fetchExistingQQConfig]);
 
   const startFeishuFlow = async () => {
     setFeishuState("loading");
     setError("");
     try {
       const res = await api.post("/qagent/channel/feishu/qr");
-      const { device_code, qr_url, interval, expire_in } = res.data;
+      const { device_code, qr_url, interval } = res.data;
       const dataUrl = await QRCode.toDataURL(qr_url, { width: 200, margin: 2 });
       setQrDataUrl(dataUrl);
       setDeviceCode(device_code);
@@ -130,6 +85,59 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
     } catch (err: any) {
       setError(err.response?.data?.detail || "生成二维码失败");
       setQQState("error");
+    }
+  };
+
+  const handleSelectChannel = async (c: ChannelType) => {
+    setChannel(c);
+    setError("");
+
+    if (!instanceId) {
+      setError("请先选择实例");
+      setFeishuState("error");
+      setQQState("error");
+      return;
+    }
+
+    if (c === "feishu") {
+      setQrDataUrl("");
+      setFeishuConfig(null);
+      try {
+        const res = await api.get(`/qagent/channel/feishu/${instanceId}`);
+        setFeishuConfig({
+          app_id: res.data.app_id,
+          owner_open_id: res.data.owner_open_id,
+          tenant_brand: res.data.tenant_brand,
+        });
+        setFeishuState("success");
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          startFeishuFlow();
+        } else {
+          setError(err.response?.data?.detail || "获取配置失败");
+          setFeishuState("error");
+        }
+      }
+    }
+
+    if (c === "qq") {
+      setQQQrDataUrl("");
+      setQQQrUrl("");
+      setQQConfig(null);
+      try {
+        const res = await api.get(`/qagent/channel/qq/${instanceId}`);
+        setQQConfig({
+          app_id: res.data.app_id,
+        });
+        setQQState("success");
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          startQQFlow();
+        } else {
+          setError(err.response?.data?.detail || "获取配置失败");
+          setQQState("error");
+        }
+      }
     }
   };
 
@@ -163,7 +171,6 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
           return;
         }
 
-        // pending - schedule next poll
         const nextInterval = res.data.interval || intervalSec;
         timer = setTimeout(poll, nextInterval * 1000);
       } catch (err: any) {
@@ -180,7 +187,7 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [feishuState, deviceCode, intervalSec]);
+  }, [feishuState, deviceCode, intervalSec, instanceId]);
 
   useEffect(() => {
     if (qqState !== "scanning" || !qqSessionId) return;
@@ -211,7 +218,6 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
           return;
         }
 
-        // pending - refresh QR if url changed, then schedule next poll
         if (res.data.qr_url && res.data.qr_url !== qqQrUrl) {
           const dataUrl = await QRCode.toDataURL(res.data.qr_url, { width: 200, margin: 2 });
           setQQQrDataUrl(dataUrl);
@@ -232,23 +238,7 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [qqState, qqSessionId]);
-
-  const handleSelectChannel = (c: ChannelType) => {
-    setChannel(c);
-    setError("");
-    if (c === "feishu") {
-      setFeishuState("idle");
-      setQrDataUrl("");
-      setFeishuConfig(null);
-    }
-    if (c === "qq") {
-      setQQState("idle");
-      setQQQrDataUrl("");
-      setQQQrUrl("");
-      setQQConfig(null);
-    }
-  };
+  }, [qqState, qqSessionId, qqQrUrl, instanceId]);
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
@@ -262,8 +252,8 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        {(["feishu", "wechat", "qq"] as ChannelType[]).map((c) => (
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        {(["feishu", "qq"] as ChannelType[]).map((c) => (
           <button
             key={c}
             type="button"
@@ -322,8 +312,8 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
                   </div>
                 ) : feishuState === "scanning" ? (
                   <div className="space-y-4">
-                    <p className="text-slate-300 text-sm">
-                      请用飞书扫描下方二维码完成绑定
+                    <p className="text-slate-300 text-sm max-w-sm mx-auto leading-relaxed">
+                      飞书对团队协作与企业办公场景比较友好，可与飞书强大的办公工作流深度集成。请用飞书扫描下方二维码完成绑定。
                     </p>
                     {qrDataUrl ? (
                       <div className="inline-flex flex-col items-center gap-3">
@@ -348,7 +338,7 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
                     <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
                     <p className="text-slate-400 text-sm">正在生成二维码...</p>
                   </div>
-                ) : feishuState === "error" ? (
+                ) : (
                   <div className="py-4 space-y-3">
                     <div className="flex items-center justify-center gap-2 text-red-400 text-sm">
                       <AlertCircle className="w-4 h-4" />
@@ -362,26 +352,9 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
                       重试
                     </button>
                   </div>
-                ) : (
-                  <div className="py-4 space-y-3">
-                    <p className="text-slate-400 text-sm">
-                      绑定飞书机器人后，可通过飞书与 QAgent 交互
-                    </p>
-                    <button
-                      onClick={startFeishuFlow}
-                      disabled={!instanceId}
-                      className="inline-flex items-center gap-2 px-6 py-2.5 bg-purple-500 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-all"
-                    >
-                      <QrCode className="w-4 h-4" />
-                      生成二维码
-                    </button>
-                    {!instanceId && (
-                      <p className="text-slate-500 text-xs">请先选择实例</p>
-                    )}
-                  </div>
                 )}
               </div>
-            ) : channel === "qq" ? (
+            ) : (
               <div className="text-center">
                 {qqState === "success" && qqConfig ? (
                   <div className="space-y-4">
@@ -406,8 +379,8 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
                   </div>
                 ) : qqState === "scanning" ? (
                   <div className="space-y-4">
-                    <p className="text-slate-300 text-sm">
-                      请用 QQ 扫描下方二维码完成绑定
+                    <p className="text-slate-300 text-sm max-w-sm mx-auto leading-relaxed">
+                      QQ 更适合个人使用，默认支持语音等便捷功能。请用 QQ 扫描下方二维码完成绑定。
                     </p>
                     {qqQrDataUrl ? (
                       <div className="inline-flex flex-col items-center gap-3">
@@ -432,7 +405,7 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
                     <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
                     <p className="text-slate-400 text-sm">正在生成二维码...</p>
                   </div>
-                ) : qqState === "error" ? (
+                ) : (
                   <div className="py-4 space-y-3">
                     <div className="flex items-center justify-center gap-2 text-red-400 text-sm">
                       <AlertCircle className="w-4 h-4" />
@@ -446,34 +419,7 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
                       重试
                     </button>
                   </div>
-                ) : (
-                  <div className="py-4 space-y-3">
-                    <p className="text-slate-400 text-sm">
-                      绑定 QQ Bot 后，可通过 QQ 与 QAgent 交互
-                    </p>
-                    <button
-                      onClick={startQQFlow}
-                      disabled={!instanceId}
-                      className="inline-flex items-center gap-2 px-6 py-2.5 bg-purple-500 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-all"
-                    >
-                      <QrCode className="w-4 h-4" />
-                      生成二维码
-                    </button>
-                    {!instanceId && (
-                      <p className="text-slate-500 text-xs">请先选择实例</p>
-                    )}
-                  </div>
                 )}
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-slate-400 text-sm">{CHANNEL_META[channel].desc}</p>
-                <div className="inline-flex flex-col items-center mt-4">
-                  <div className="w-48 h-48 bg-slate-800 border-2 border-dashed border-slate-600 rounded-xl flex flex-col items-center justify-center gap-2">
-                    <QrCode className="w-10 h-10 text-slate-500" />
-                    <span className="text-slate-500 text-xs">微信服务号二维码</span>
-                  </div>
-                </div>
               </div>
             )}
           </motion.div>

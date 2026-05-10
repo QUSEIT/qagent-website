@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Key, Globe, Cpu, Save, CheckCircle, AlertCircle } from "lucide-react";
 import api from "../services/api";
@@ -62,6 +62,11 @@ const TokenConfigCard: React.FC<TokenConfigCardProps> = ({ instanceId, defaultPr
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [displayDefaultProvider, setDisplayDefaultProvider] = useState(defaultProvider);
+
+  useEffect(() => {
+    setDisplayDefaultProvider(defaultProvider);
+  }, [defaultProvider]);
 
   const handleSelectProvider = async (p: TokenProvider) => {
     setProvider(p);
@@ -109,6 +114,7 @@ const TokenConfigCard: React.FC<TokenConfigCardProps> = ({ instanceId, defaultPr
       }
 
       setSaved(true);
+      setDisplayDefaultProvider(provider);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
       setError(err.response?.data?.detail || "保存失败，请重试");
@@ -144,7 +150,7 @@ const TokenConfigCard: React.FC<TokenConfigCardProps> = ({ instanceId, defaultPr
             }`}
           >
             {PROVIDER_LABELS[p]}
-            {defaultProvider === p && (
+            {displayDefaultProvider === p && (
               <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-[10px] rounded border border-green-500/30">
                 默认
               </span>

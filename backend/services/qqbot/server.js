@@ -22,19 +22,33 @@ app.post("/register", (req, res) => {
   };
   sessions.set(sessionId, session);
 
+  let responded = false;
+
   const stop = startQrConnect(
     {
       onQrDisplayed(url) {
         session.qrUrl = url;
         console.log(`[QQBot] Session ${sessionId} QR displayed`);
+        if (!responded) {
+          responded = true;
+          res.json({ session_id: sessionId, status: "pending", qr_url: url });
+        }
       },
       onSuccess(creds) {
         session.credentials = creds;
         console.log(`[QQBot] Session ${sessionId} success, appId=${creds[0]?.appId}`);
+        if (!responded) {
+          responded = true;
+          res.json({ session_id: sessionId, status: "pending" });
+        }
       },
       onFailure(err) {
         session.error = err.message;
         console.error(`[QQBot] Session ${sessionId} failed: ${err.message}`);
+        if (!responded) {
+          responded = true;
+          res.status(500).json({ error: err.message });
+        }
       },
       onQrExpired() {
         console.log(`[QQBot] Session ${sessionId} QR expired, refreshing...`);
@@ -53,8 +67,6 @@ app.post("/register", (req, res) => {
       console.log(`[QQBot] Session ${sessionId} auto-cleaned after timeout`);
     }
   }, 10 * 60 * 1000);
-
-  res.json({ session_id: sessionId, status: "pending" });
 });
 
 // 2. Poll for QR URL or result

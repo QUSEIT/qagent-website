@@ -16,6 +16,9 @@ interface InstanceInfo {
   instance_type: string;
   skill_template?: string;
   default_provider?: string;
+  cpu_cores: number;
+  memory_gb: number;
+  disk_gb: number;
   created_at: string;
 }
 
@@ -278,11 +281,11 @@ const DashboardPage: React.FC = () => {
                     : "bg-slate-800 border-slate-700 hover:border-slate-600"
                 }`}
               >
-                {isRunning ? (
-                  <Sparkles className="w-5 h-5 text-green-400" />
-                ) : (
-                  <Loader2 className="w-5 h-5 text-amber-400 animate-spin" />
-                )}
+                <span className={`text-sm font-bold ${isRunning ? "text-green-400" : "text-amber-400"}`}>
+                  {instance.skill_template && instance.skill_template !== "none"
+                    ? instance.skill_template.charAt(0).toUpperCase()
+                    : instance.name.charAt(0)}
+                </span>
                 <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                   {instance.name}
                 </div>
@@ -608,21 +611,21 @@ const DashboardPage: React.FC = () => {
                       <Cpu className="w-4 h-4 text-amber-400" />
                       <span className="text-slate-300 text-sm font-medium">CPU</span>
                     </div>
-                    <p className="text-white text-lg font-bold">1 核</p>
+                    <p className="text-white text-lg font-bold">{selectedInstance.cpu_cores} 核</p>
                   </div>
                   <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Zap className="w-4 h-4 text-blue-400" />
                       <span className="text-slate-300 text-sm font-medium">内存</span>
                     </div>
-                    <p className="text-white text-lg font-bold">4 GB</p>
+                    <p className="text-white text-lg font-bold">{selectedInstance.memory_gb} GB</p>
                   </div>
                   <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Server className="w-4 h-4 text-green-400" />
                       <span className="text-slate-300 text-sm font-medium">磁盘</span>
                     </div>
-                    <p className="text-white text-lg font-bold">20 GB</p>
+                    <p className="text-white text-lg font-bold">{selectedInstance.disk_gb} GB</p>
                   </div>
                   <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -659,7 +662,7 @@ const DashboardPage: React.FC = () => {
                   {selectedStatus?.status === "running" ? (
                     <>
                       <ExternalLink className="w-5 h-5" />
-                      打开 AI 助理系统
+                      在线管理 QAgent 实例
                     </>
                   ) : (
                     <>
