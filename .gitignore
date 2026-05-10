@@ -10,3 +10,4 @@ dist
 data/*.db
 backend/services/qqbot/node_modules
 *.test
+venv
