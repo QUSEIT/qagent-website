@@ -851,12 +851,11 @@ const LandingPage: React.FC = () => {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
-              <span className="text-white">准备好拥有您的</span>
-              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">数字员工</span>
-              <span className="text-white">了吗？</span>
+              <span className="text-white">解锁您的</span>
+              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">AI 原生团队</span>
             </h2>
             <p className="text-slate-400 text-lg mb-10 max-w-2xl mx-auto">
-              立即体验，让QAgent成为您的数字员工，提升工作效率，释放创造力和生产力
+              从今天起，用数字员工重构工作流——智能体随叫随到，标准化，可信赖
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
