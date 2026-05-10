@@ -91,6 +91,35 @@ class QQChannel(Base):
 
 from sqlalchemy import Float
 
+class SkillSet(Base):
+    __tablename__ = "skill_sets"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String(100), nullable=False)
+    description = Column(String(500), nullable=True)
+    instance_type = Column(String(50), nullable=False)  # OpenClaw, HermesAgent
+    skill_id = Column(String(50), nullable=False)      # content, devops, tutor, none
+    icon = Column(String(10), nullable=True)             # first char of name
+    sort_order = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    skills = relationship("Skill", back_populates="skill_set", cascade="all, delete-orphan")
+
+
+class Skill(Base):
+    __tablename__ = "skills"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    skill_set_id = Column(Integer, ForeignKey("skill_sets.id"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(String(500), nullable=True)
+    icon = Column(String(10), nullable=True)             # first char of name
+    sort_order = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    skill_set = relationship("SkillSet", back_populates="skills")
+
+
 class Instance(Base):
     __tablename__ = "instances"
 

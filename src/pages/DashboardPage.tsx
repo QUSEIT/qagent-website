@@ -177,10 +177,13 @@ const DashboardPage: React.FC = () => {
   const handleAccess = async () => {
     if (!selectedInstanceId) return;
     setError("");
+    // Clear stale access info to ensure fresh token each time
+    setAccessInfo(null);
     try {
       const response = await api.post(`/qagent/access/${selectedInstanceId}`);
-      setAccessInfo(response.data);
-      window.open(response.data.proxy_url, "_blank");
+      const newAccessInfo = response.data;
+      setAccessInfo(newAccessInfo);
+      window.open(newAccessInfo.proxy_url, "_blank");
     } catch (err: any) {
       setError(err.response?.data?.detail || "获取访问链接失败");
     }
