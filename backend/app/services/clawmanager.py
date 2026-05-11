@@ -122,11 +122,50 @@ class ClawManagerClient:
     def stop_instance(self, instance_id: int) -> Dict[str, Any]:
         return self._request("POST", f"/api/v1/instances/{instance_id}/stop")
 
+    def restart_instance(self, instance_id: int) -> Dict[str, Any]:
+        return self._request("POST", f"/api/v1/instances/{instance_id}/restart")
+
     def delete_instance(self, instance_id: int) -> Dict[str, Any]:
         return self._request("DELETE", f"/api/v1/instances/{instance_id}")
 
     def get_instance_status(self, instance_id: int) -> Dict[str, Any]:
         return self._request("GET", f"/api/v1/instances/{instance_id}/status")
+
+    def export_openclaw(self, instance_id: int) -> Dict[str, Any]:
+        return self._request("GET", f"/api/v1/instances/{instance_id}/openclaw/export")
+
+    def import_openclaw(self, instance_id: int, file_content: bytes, filename: str) -> Dict[str, Any]:
+        from httpx import HTTPError
+        token = self._ensure_auth()
+        url = f"{self.base_url}/api/v1/instances/{instance_id}/openclaw/import"
+        headers = {"Authorization": f"Bearer {token}"}
+        try:
+            resp = httpx.request(
+                "POST", url,
+                headers=headers,
+                files={"file": (filename, file_content, "application/octet-stream")},
+                timeout=300,
+            )
+            if resp.status_code == 401:
+                self._login()
+                token = self._access_token
+                headers["Authorization"] = f"Bearer {token}"
+                resp = httpx.request(
+                    "POST", url,
+                    headers=headers,
+                    files={"file": (filename, file_content, "application/octet-stream")},
+                    timeout=300,
+                )
+            if resp.is_error:
+                try:
+                    body = resp.json()
+                    detail = body.get("error") or body.get("message") or resp.text
+                except Exception:
+                    detail = resp.text
+                raise ClawManagerError(resp.status_code, detail, "POST", f"/api/v1/instances/{instance_id}/openclaw/import")
+            return resp.json()
+        except HTTPError as e:
+            raise ClawManagerError(502, str(e), "POST", f"/api/v1/instances/{instance_id}/openclaw/import")
 
     def exec_instance(self, instance_id: int, command: str) -> Dict[str, Any]:
         return self._request("POST", f"/api/v1/instances/{instance_id}/exec", json={"command": ["/bin/sh", "-c", command]}, timeout=300)

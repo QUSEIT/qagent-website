@@ -4,7 +4,7 @@ import re
 import shlex
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -612,9 +612,19 @@ def install_skills(
     if not instance:
         raise HTTPException(status_code=404, detail="QAgent not found")
 
-    skill_template = req.get("skill_template", instance.skill_template) or "none"
+    skill_template = req.get("skill_template", instance.skill_template)
+    clawmanager_skill_id = req.get("clawmanager_skill_id")
 
-    if skill_template == "none":
+    if clawmanager_skill_id is None and not skill_template:
+        raise HTTPException(status_code=400, detail="skill_template or clawmanager_skill_id is required")
+
+    if clawmanager_skill_id:
+        try:
+            clawmanager_skill_id = int(clawmanager_skill_id)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="invalid clawmanager_skill_id")
+
+    if skill_template == "none" or clawmanager_skill_id is None:
         command = "openclaw skills reset"
         try:
             result = clawmanager_client.exec_instance(instance.clawmanager_instance_id, command)
@@ -632,12 +642,9 @@ def install_skills(
             logger.exception("ClawManager exec_instance failed for skills reset")
             raise HTTPException(status_code=500, detail=f"Failed to reset skills: {type(e).__name__}: {e}")
 
-    skill_set = db.query(SkillSet).filter(SkillSet.skill_id == skill_template).first()
-    if not skill_set or not skill_set.clawmanager_skill_id:
-        raise HTTPException(status_code=404, detail="Skill not found")
-
+    skill_template = str(skill_template)
     try:
-        result = clawmanager_client.attach_skill_to_instance(instance.clawmanager_instance_id, skill_set.clawmanager_skill_id)
+        result = clawmanager_client.attach_skill_to_instance(instance.clawmanager_instance_id, clawmanager_skill_id)
         instance.skill_template = skill_template
         db.commit()
         return {"message": "Skill attached", "result": result}
@@ -730,12 +737,13 @@ def get_skill_templates(
     if not instance:
         raise HTTPException(status_code=404, detail="QAgent not found")
 
-    skill_sets = db.query(SkillSet).filter(SkillSet.instance_type == instance.instance_type).order_by(SkillSet.sort_order).all()
+    skill_sets = db.query(SkillSet).filter(SkillSet.instance_type == instance.instance_type, SkillSet.skill_id != "none").order_by(SkillSet.sort_order).all()
     result = []
     for ss in skill_sets:
         skills = db.query(Skill).filter(Skill.skill_set_id == ss.id).order_by(Skill.sort_order).all()
         result.append({
             "id": ss.skill_id,
+            "clawmanager_skill_id": ss.clawmanager_skill_id,
             "label": ss.name,
             "desc": ss.description or "",
             "skills": [{"name": s.name, "desc": s.description or ""} for s in skills],
@@ -799,3 +807,75 @@ def uninstall_skill(
     except Exception as e:
         logger.exception("ClawManager detach_skill failed")
         raise HTTPException(status_code=500, detail=f"卸载技能失败: {type(e).__name__}: {e}")
+
+
+def _instance_action(instance_id: int, user_id: int, db: Session, action: str, method: str):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user_id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+    try:
+        result = method(instance.clawmanager_instance_id)
+        return result
+    except ClawManagerError as e:
+        logger.exception(f"ClawManager {action} failed")
+        raise HTTPException(status_code=e.status_code if e.status_code >= 400 else 500, detail=e.detail)
+    except Exception as e:
+        logger.exception(f"ClawManager {action} failed")
+        raise HTTPException(status_code=500, detail=f"{action}失败: {type(e).__name__}: {e}")
+
+
+@router.post("/instance/{instance_id}/start")
+def start_instance(instance_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    result = _instance_action(instance_id, user.id, db, "启动实例", clawmanager_client.start_instance)
+    return result
+
+
+@router.post("/instance/{instance_id}/stop")
+def stop_instance(instance_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    result = _instance_action(instance_id, user.id, db, "停止实例", clawmanager_client.stop_instance)
+    return result
+
+
+@router.post("/instance/{instance_id}/restart")
+def restart_instance(instance_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    result = _instance_action(instance_id, user.id, db, "重启实例", clawmanager_client.restart_instance)
+    return result
+
+
+@router.get("/instance/{instance_id}/export")
+def export_instance(instance_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+    if instance.instance_type.lower() != "openclaw":
+        raise HTTPException(status_code=400, detail="功能正在实现中")
+
+    try:
+        result = clawmanager_client.export_openclaw(instance.clawmanager_instance_id)
+        return result
+    except ClawManagerError as e:
+        logger.exception("ClawManager export_openclaw failed")
+        raise HTTPException(status_code=e.status_code if e.status_code >= 400 else 500, detail=e.detail)
+    except Exception as e:
+        logger.exception("ClawManager export_openclaw failed")
+        raise HTTPException(status_code=500, detail=f"导出配置失败: {type(e).__name__}: {e}")
+
+
+@router.post("/instance/{instance_id}/import")
+async def import_instance(instance_id: int, file: UploadFile = File(...), user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+    if instance.instance_type.lower() != "openclaw":
+        raise HTTPException(status_code=400, detail="功能正在实现中")
+
+    content = await file.read()
+    try:
+        result = clawmanager_client.import_openclaw(instance.clawmanager_instance_id, content, file.filename or "workspace.tar.gz")
+        return result
+    except ClawManagerError as e:
+        logger.exception("ClawManager import_openclaw failed")
+        raise HTTPException(status_code=e.status_code if e.status_code >= 400 else 500, detail=e.detail)
+    except Exception as e:
+        logger.exception("ClawManager import_openclaw failed")
+        raise HTTPException(status_code=500, detail=f"导入配置失败: {type(e).__name__}: {e}")

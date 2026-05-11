@@ -405,8 +405,8 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
       >
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center">
-              <QrCode className="w-6 h-6 text-purple-400" />
+            <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center">
+              <QrCode className="w-6 h-6 text-red-400" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">QQ</h2>
@@ -416,7 +416,7 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
           {qqState === "idle" && (
             <button
               onClick={startQQFlow}
-              className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-all"
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-all"
             >
               启用
             </button>
@@ -439,7 +439,7 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${
               qqState === "success"
                 ? "bg-green-500/20 text-green-400"
-                : "bg-purple-500/20 text-purple-400"
+                : "bg-red-500/20 text-red-400"
             }`}>
               {qqState === "success" ? "已启用" : "配置中"}
             </span>
@@ -501,7 +501,7 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
             </div>
           ) : qqState === "loading" ? (
             <div className="py-8 flex flex-col items-center gap-3">
-              <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+              <Loader2 className="w-8 h-8 text-red-400 animate-spin" />
               <p className="text-slate-400 text-sm">正在生成二维码...</p>
             </div>
           ) : qqState === "error" ? (
@@ -512,7 +512,7 @@ const ChannelConfigCard: React.FC<ChannelConfigCardProps> = ({ instanceId }) => 
               </div>
               <button
                 onClick={startQQFlow}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm transition-all"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-all"
               >
                 <RefreshCw className="w-4 h-4" />
                 重试

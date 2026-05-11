@@ -122,9 +122,9 @@ const ProviderWidget: React.FC<ProviderWidgetProps> = ({
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-            provider === "minimx" ? "bg-blue-500/10" : "bg-purple-500/10"
+            provider === "minimx" ? "bg-blue-500/10" : "bg-red-500/10"
           }`}>
-            <Key className={`w-6 h-6 ${provider === "minimx" ? "text-blue-400" : "text-purple-400"}`} />
+            <Key className={`w-6 h-6 ${provider === "minimx" ? "text-blue-400" : "text-red-400"}`} />
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">{PROVIDER_LABELS[provider]}</h2>
@@ -143,7 +143,7 @@ const ProviderWidget: React.FC<ProviderWidgetProps> = ({
               className={`px-4 py-2 text-white rounded-lg text-sm font-medium transition-all ${
                 provider === "minimx"
                   ? "bg-blue-500 hover:bg-blue-600"
-                  : "bg-purple-500 hover:bg-purple-600"
+                  : "bg-red-500 hover:bg-red-600"
               }`}
             >
               启用
@@ -159,7 +159,7 @@ const ProviderWidget: React.FC<ProviderWidgetProps> = ({
           )}
           {state === "saving" && (
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-              provider === "minimx" ? "bg-blue-500/20 text-blue-400" : "bg-purple-500/20 text-purple-400"
+              provider === "minimx" ? "bg-blue-500/20 text-blue-400" : "bg-red-500/20 text-red-400"
             }`}>
               <div className="flex items-center gap-1.5">
                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -222,7 +222,7 @@ const ProviderWidget: React.FC<ProviderWidgetProps> = ({
                   className={`w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none appearance-none transition-all ${
                     provider === "minimx"
                       ? "focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      : "focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                      : "focus:border-red-500 focus:ring-1 focus:ring-red-500"
                   }`}
                 >
                   {models.map((m) => (

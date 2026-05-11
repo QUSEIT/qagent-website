@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  AlertTriangle, CheckCircle, Cpu, Download, ExternalLink, Key, Loader2, Lock, LogOut, MessageCircle, Plus, RefreshCw, Rocket, Server, Settings, Shield, Sparkles, Trash2, User, Wrench, Zap,
+  AlertTriangle, CheckCircle, Cpu, Download, ExternalLink, Key, Loader2, Lock, LogOut, MessageCircle, Plus, Power, RefreshCw, Rocket, RotateCcw, Server, Settings, Shield, Sparkles, Square, Trash2, Upload, User, Wrench, Zap,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
@@ -40,6 +40,7 @@ type ActiveTab = "config" | "token" | "channel" | "skill";
 
 interface SkillTemplateInfo {
   id: string;
+  clawmanager_skill_id?: number;
   label: string;
   desc: string;
   skills: { name: string; desc: string }[];
@@ -94,14 +95,14 @@ const DashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>("config");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedInstanceId, setSelectedInstanceId] = useState<number | null>(null);
-  const [isInstallingSkills, setIsInstallingSkills] = useState(false);
-  const [skillsInstallSuccess, setSkillsInstallSuccess] = useState(false);
-  const [skillTemplates, setSkillTemplates] = useState<SkillTemplateInfo[]>([
-    { id: "none", label: "无", desc: "通用模式，不预设特定技能", skills: [] },
-  ]);
+  const [skillTemplates, setSkillTemplates] = useState<SkillTemplateInfo[]>([]);
   const [isSyncingSkills, setIsSyncingSkills] = useState(false);
   const [installedSkills, setInstalledSkills] = useState<InstalledSkill[]>([]);
   const [isLoadingInstalled, setIsLoadingInstalled] = useState(false);
+  const [installingSkillId, setInstallingSkillId] = useState<number | null>(null);
+  const [installSuccessId, setInstallSuccessId] = useState<number | null>(null);
+  const [uninstallingSkillId, setUninstallingSkillId] = useState<number | null>(null);
+  const [instanceAction, setInstanceAction] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStatus();
@@ -127,9 +128,6 @@ const DashboardPage: React.FC = () => {
       api.get(`/qagent/skills/templates/${selectedInstanceId}`)
         .then((res) => {
           const templates = res.data as SkillTemplateInfo[];
-          if (!templates.find((t) => t.id === "none")) {
-            templates.push({ id: "none", label: "无", desc: "通用模式，不预设特定技能", skills: [] });
-          }
           setSkillTemplates(templates);
         })
         .catch(() => {});
@@ -264,17 +262,21 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  const handleInstallSkills = async () => {
+  const handleInstallSkills = async (template: SkillTemplateInfo) => {
     if (!selectedInstanceId) return;
     setError("");
-    setIsInstallingSkills(true);
-    setSkillsInstallSuccess(false);
+    setInstallingSkillId(template.clawmanager_skill_id ?? null);
     try {
       const currentRunningStatus = selectedInstanceId ? instanceStatusMap[selectedInstanceId]?.status === "running" : false;
-      await api.post(`/qagent/skills/install/${selectedInstanceId}`, { skill_template: selectedInstallTemplate });
+      await api.post(`/qagent/skills/install/${selectedInstanceId}`, {
+        skill_template: template.id,
+        clawmanager_skill_id: template.clawmanager_skill_id,
+      });
       await fetchStatus();
-      setSkillsInstallSuccess(true);
-      setTimeout(() => setSkillsInstallSuccess(false), 3000);
+      if (template.clawmanager_skill_id !== undefined) {
+        setInstallSuccessId(template.clawmanager_skill_id);
+        setTimeout(() => setInstallSuccessId(null), 3000);
+      }
       if (currentRunningStatus) {
         const res = await api.get(`/qagent/skills/installed/${selectedInstanceId}`);
         setInstalledSkills(res.data as InstalledSkill[]);
@@ -282,19 +284,22 @@ const DashboardPage: React.FC = () => {
     } catch (err: any) {
       setError(err.response?.data?.detail || "安装技能失败，请重试");
     } finally {
-      setIsInstallingSkills(false);
+      setInstallingSkillId(null);
     }
   };
 
   const handleUninstallSkill = async (cmSkillId: number) => {
     if (!selectedInstanceId) return;
     setError("");
+    setUninstallingSkillId(cmSkillId);
     try {
       await api.delete(`/qagent/skills/installed/${selectedInstanceId}/${cmSkillId}`);
       setInstalledSkills((prev) => prev.filter((s) => s.id !== cmSkillId));
       await fetchStatus();
     } catch (err: any) {
       setError(err.response?.data?.detail || "卸载技能失败，请重试");
+    } finally {
+      setUninstallingSkillId(null);
     }
   };
 
@@ -320,6 +325,48 @@ const DashboardPage: React.FC = () => {
   const handleLogout = () => {
     logout();
     navigate("/");
+  };
+
+  const handleInstanceAction = async (action: "start" | "stop" | "restart") => {
+    if (!selectedInstanceId) return;
+    setError("");
+    setInstanceAction(action);
+    try {
+      await api.post(`/qagent/instance/${selectedInstanceId}/${action}`);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || `${action === "start" ? "启动" : action === "stop" ? "停止" : "重启"}失败，请重试`);
+    } finally {
+      setInstanceAction(null);
+      fetchStatus();
+    }
+  };
+
+  const handleExport = async () => {
+    if (!selectedInstanceId) return;
+    setError("");
+    try {
+      const res = await api.get(`/qagent/instance/${selectedInstanceId}/export`);
+      const url = res.data?.data?.download_url;
+      if (url) {
+        window.open(url, "_blank");
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "导出失败，请重试");
+    }
+  };
+
+  const handleImport = async (file: File) => {
+    if (!selectedInstanceId) return;
+    setError("");
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      await api.post(`/qagent/instance/${selectedInstanceId}/import`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "导入失败，请重试");
+    }
   };
 
   if (isLoading) {
@@ -652,14 +699,16 @@ const DashboardPage: React.FC = () => {
                 )}
               </div>
             </motion.div>
-          ) : selectedInstance && activeTab === "config" ? (
+) : selectedInstance && activeTab === "config" ? (
             /* Config Panel (基础配置) */
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-            >
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left: instance info */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="bg-slate-900 border border-slate-800 rounded-2xl p-8"
+              >
                 <div className="flex items-center gap-3 mb-6">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${selectedStatus?.status === "running" ? "bg-green-500/10" : "bg-amber-500/10"}`}>
                     {selectedStatus?.status === "running" ? (
@@ -764,8 +813,100 @@ const DashboardPage: React.FC = () => {
                     关闭后将停止并删除当前实例，此操作不可撤销
                   </p>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+
+              {/* Right: config management */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="bg-slate-900 border border-slate-800 rounded-2xl p-8"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center">
+                    <Settings className="w-6 h-6 text-amber-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">配置管理</h2>
+                    <p className="text-slate-400 text-sm">实例生命周期与配置导入导出</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                  {/* 开启 */}
+                  <button
+                    onClick={() => handleInstanceAction("start")}
+                    disabled={instanceAction !== null || selectedStatus?.status === "running"}
+                    className="flex flex-col items-center gap-2 p-4 bg-slate-800/50 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
+                      <Power className="w-5 h-5 text-green-400" />
+                    </div>
+                    <span className="text-xs text-slate-300">开启</span>
+                  </button>
+
+                  {/* 停止 */}
+                  <button
+                    onClick={() => handleInstanceAction("stop")}
+                    disabled={instanceAction !== null || selectedStatus?.status !== "running"}
+                    className="flex flex-col items-center gap-2 p-4 bg-slate-800/50 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <div className="w-10 h-10 bg-red-500/10 rounded-lg flex items-center justify-center">
+                      <Square className="w-5 h-5 text-red-400" />
+                    </div>
+                    <span className="text-xs text-slate-300">停止</span>
+                  </button>
+
+                  {/* 重启 */}
+                  <button
+                    onClick={() => handleInstanceAction("restart")}
+                    disabled={instanceAction !== null || selectedStatus?.status !== "running"}
+                    className="flex flex-col items-center gap-2 p-4 bg-slate-800/50 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                      <RotateCcw className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <span className="text-xs text-slate-300">重启</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {/* 导出配置 */}
+                  <button
+                    onClick={handleExport}
+                    disabled={selectedStatus?.status !== "running"}
+                    className="flex items-center gap-2 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl hover:border-blue-500/50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Download className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm text-slate-300">导出配置</span>
+                  </button>
+
+                  {/* 导入配置 */}
+                  <label
+                    className={`flex items-center gap-2 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl hover:border-blue-500/50 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${selectedStatus?.status !== "running" ? "pointer-events-none" : ""}`}
+                  >
+                    <Upload className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm text-slate-300">导入配置</span>
+                    <input
+                      type="file"
+                      accept=".tar.gz,.tgz,.zip"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImport(file);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-6 p-4 bg-slate-800/50 border border-slate-700 rounded-xl">
+                  <p className="text-slate-400 text-sm">
+                    导出当前实例的配置文件，可用于备份或迁移到其他实例。
+                  </p>
+                </div>
+              </motion.div>
+            </div>
           ) : activeTab === "token" ? (
             <TokenConfigCard instanceId={selectedInstance?.id} defaultProvider={selectedInstance?.default_provider} />
           ) : activeTab === "channel" ? (
@@ -782,8 +923,8 @@ const DashboardPage: React.FC = () => {
               >
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center">
-                      <Sparkles className="w-6 h-6 text-purple-400" />
+                    <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center">
+                      <Sparkles className="w-6 h-6 text-red-400" />
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-white">可安装技能</h2>
@@ -793,14 +934,9 @@ const DashboardPage: React.FC = () => {
                   <button
                     onClick={handleSyncSkills}
                     disabled={isSyncingSkills || selectedStatus?.status !== "running"}
-                    className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isSyncingSkills ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4" />
-                    )}
-                    同步
+                    {isSyncingSkills ? "同步中..." : "同步"}
                   </button>
                 </div>
 
@@ -837,12 +973,17 @@ const DashboardPage: React.FC = () => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedInstallTemplate(t.id as SkillTemplate);
+                                handleInstallSkills(t);
                               }}
-                              disabled={isInstallingSkills || selectedStatus?.status !== "running"}
-                              className="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/40 text-purple-400 rounded-lg text-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                              disabled={installingSkillId === t.clawmanager_skill_id || selectedStatus?.status !== "running"}
+                              className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-lg text-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5"
                             >
-                              安装
+                              {installingSkillId === t.clawmanager_skill_id ? (
+                                <div className="w-3 h-3 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                              ) : installSuccessId === t.clawmanager_skill_id ? (
+                                <CheckCircle className="w-3 h-3" />
+                              ) : null}
+                              {installingSkillId === t.clawmanager_skill_id ? "安装中" : installSuccessId === t.clawmanager_skill_id ? "已安装" : "安装"}
                             </button>
                           </div>
                         </div>
@@ -879,14 +1020,9 @@ const DashboardPage: React.FC = () => {
                         .finally(() => setIsLoadingInstalled(false));
                     }}
                     disabled={isLoadingInstalled || selectedStatus?.status !== "running"}
-                    className="px-4 py-2 bg-green-500/20 hover:bg-green-500/40 text-green-400 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-green-500/20 hover:bg-green-500/40 text-green-400 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isLoadingInstalled ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4" />
-                    )}
-                    刷新
+                    {isLoadingInstalled ? "刷新中..." : "刷新"}
                   </button>
                 </div>
 
@@ -922,9 +1058,13 @@ const DashboardPage: React.FC = () => {
                         </div>
                         <button
                           onClick={() => handleUninstallSkill(skill.id)}
-                          className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm transition-all"
+                          disabled={uninstallingSkillId === skill.id}
+                          className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
                         >
-                          卸载
+                          {uninstallingSkillId === skill.id ? (
+                            <div className="w-3 h-3 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                          ) : null}
+                          {uninstallingSkillId === skill.id ? "卸载中" : "卸载"}
                         </button>
                       </div>
                     ))}
