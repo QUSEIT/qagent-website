@@ -103,6 +103,8 @@ const DashboardPage: React.FC = () => {
   const [installSuccessId, setInstallSuccessId] = useState<number | null>(null);
   const [uninstallingSkillId, setUninstallingSkillId] = useState<number | null>(null);
   const [instanceAction, setInstanceAction] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     fetchStatus();
@@ -344,6 +346,7 @@ const DashboardPage: React.FC = () => {
   const handleExport = async () => {
     if (!selectedInstanceId) return;
     setError("");
+    setExporting(true);
     try {
       const res = await api.get(`/qagent/instance/${selectedInstanceId}/export`, {
         responseType: "blob",
@@ -365,12 +368,15 @@ const DashboardPage: React.FC = () => {
       URL.revokeObjectURL(url);
     } catch (err: any) {
       setError(err.response?.data?.detail || "导出失败，请重试");
+    } finally {
+      setExporting(false);
     }
   };
 
   const handleImport = async (file: File) => {
     if (!selectedInstanceId) return;
     setError("");
+    setImporting(true);
     const formData = new FormData();
     formData.append("file", file);
     try {
@@ -379,6 +385,8 @@ const DashboardPage: React.FC = () => {
       });
     } catch (err: any) {
       setError(err.response?.data?.detail || "导入失败，请重试");
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -887,23 +895,32 @@ const DashboardPage: React.FC = () => {
                   {/* 导出配置 */}
                   <button
                     onClick={handleExport}
-                    disabled={selectedStatus?.status !== "running"}
+                    disabled={exporting || importing || selectedStatus?.status !== "running"}
                     className="flex items-center gap-2 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl hover:border-blue-500/50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <Download className="w-4 h-4 text-blue-400" />
-                    <span className="text-sm text-slate-300">导出配置</span>
+                    {exporting ? (
+                      <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4 text-blue-400" />
+                    )}
+                    <span className="text-sm text-slate-300">{exporting ? "导出中..." : "导出配置"}</span>
                   </button>
 
                   {/* 导入配置 */}
                   <label
-                    className={`flex items-center gap-2 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl hover:border-blue-500/50 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${selectedStatus?.status !== "running" ? "pointer-events-none" : ""}`}
+                    className={`flex items-center gap-2 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed ${selectedStatus?.status !== "running" || importing || exporting ? "pointer-events-none cursor-not-allowed" : "hover:border-blue-500/50 cursor-pointer"}`}
                   >
-                    <Upload className="w-4 h-4 text-blue-400" />
-                    <span className="text-sm text-slate-300">导入配置</span>
+                    {importing ? (
+                      <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 text-blue-400" />
+                    )}
+                    <span className="text-sm text-slate-300">{importing ? "导入中..." : "导入配置"}</span>
                     <input
                       type="file"
                       accept=".tar.gz,.tgz,.zip"
                       className="hidden"
+                      disabled={importing || exporting}
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) handleImport(file);
