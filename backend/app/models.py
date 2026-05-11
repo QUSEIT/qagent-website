@@ -67,6 +67,7 @@ class FeishuChannel(Base):
     app_secret = Column(String(200), nullable=False)
     owner_open_id = Column(String(100), nullable=True)
     tenant_brand = Column(String(20), default="feishu", nullable=False)
+    status = Column(String(20), default="pending", nullable=False)  # pending=扫码成功未保存, active=已保存
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -82,6 +83,7 @@ class QQChannel(Base):
     instance_id = Column(Integer, ForeignKey("instances.id"), nullable=False, index=True)
     app_id = Column(String(100), nullable=False)
     app_secret = Column(String(200), nullable=False)
+    status = Column(String(20), default="pending", nullable=False)  # pending=扫码成功未保存, active=已保存
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -98,7 +100,8 @@ class SkillSet(Base):
     name = Column(String(100), nullable=False)
     description = Column(String(500), nullable=True)
     instance_type = Column(String(50), nullable=False)  # OpenClaw, HermesAgent
-    skill_id = Column(String(50), nullable=False)      # content, devops, tutor, none
+    skill_id = Column(String(200), nullable=False)      # ClawManager skill_key
+    clawmanager_skill_id = Column(Integer, nullable=True)  # ClawManager skill ID for attach API
     icon = Column(String(10), nullable=True)             # first char of name
     sort_order = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  AlertTriangle, Cpu, ExternalLink, Key, Loader2, Lock, LogOut, MessageCircle, Plus, Rocket, Server, Settings, Shield, Sparkles, Trash2, User, Zap,
+  AlertTriangle, CheckCircle, Cpu, Download, ExternalLink, Key, Loader2, Lock, LogOut, MessageCircle, Plus, RefreshCw, Rocket, Server, Settings, Shield, Sparkles, Trash2, User, Wrench, Zap,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
@@ -36,14 +36,22 @@ interface ClawManagerInstanceStatus {
 
 type InstanceType = "OpenClaw" | "HermesAgent";
 type SkillTemplate = "content" | "devops" | "tutor" | "none";
-type ActiveTab = "config" | "token" | "channel";
+type ActiveTab = "config" | "token" | "channel" | "skill";
 
-const SKILL_TEMPLATES: { id: SkillTemplate; label: string; desc: string }[] = [
-  { id: "content", label: "内容创作", desc: "文案撰写、内容策划、创意生成" },
-  { id: "devops", label: "DevOps", desc: "CI/CD、容器编排、运维自动化" },
-  { id: "tutor", label: "学习辅导", desc: "知识讲解、习题解答、学习计划" },
-  { id: "none", label: "无", desc: "通用模式，不预设特定技能" },
-];
+interface SkillTemplateInfo {
+  id: string;
+  label: string;
+  desc: string;
+  skills: { name: string; desc: string }[];
+}
+
+interface InstalledSkill {
+  id: number;
+  skill_id: string | null;
+  name: string;
+  description: string;
+  status: string;
+}
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -59,6 +67,7 @@ const SIDEBAR_ITEMS: { id: ActiveTab; label: string; icon: React.ElementType }[]
   { id: "config", label: "基础配置", icon: Settings },
   { id: "token", label: "Token配置", icon: Key },
   { id: "channel", label: "Channel配置", icon: MessageCircle },
+  { id: "skill", label: "技能配置", icon: Sparkles },
 ];
 
 const DashboardPage: React.FC = () => {
@@ -72,6 +81,7 @@ const DashboardPage: React.FC = () => {
   const [instanceName, setInstanceName] = useState("我的 QAgent");
   const [instanceType, setInstanceType] = useState<InstanceType>("OpenClaw");
   const [skillTemplate, setSkillTemplate] = useState<SkillTemplate>("none");
+  const [selectedInstallTemplate, setSelectedInstallTemplate] = useState<SkillTemplate>("none");
   const [cpuCores, setCpuCores] = useState<number>(1);
   const [memoryGb, setMemoryGb] = useState<number>(4);
   const [diskGb, setDiskGb] = useState<number>(20);
@@ -84,6 +94,14 @@ const DashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>("config");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedInstanceId, setSelectedInstanceId] = useState<number | null>(null);
+  const [isInstallingSkills, setIsInstallingSkills] = useState(false);
+  const [skillsInstallSuccess, setSkillsInstallSuccess] = useState(false);
+  const [skillTemplates, setSkillTemplates] = useState<SkillTemplateInfo[]>([
+    { id: "none", label: "无", desc: "通用模式，不预设特定技能", skills: [] },
+  ]);
+  const [isSyncingSkills, setIsSyncingSkills] = useState(false);
+  const [installedSkills, setInstalledSkills] = useState<InstalledSkill[]>([]);
+  const [isLoadingInstalled, setIsLoadingInstalled] = useState(false);
 
   useEffect(() => {
     fetchStatus();
@@ -94,6 +112,40 @@ const DashboardPage: React.FC = () => {
       setSelectedInstanceId(status.instances[0].id);
     }
   }, [status?.instances, selectedInstanceId]);
+
+  useEffect(() => {
+    if (selectedInstanceId && status?.instances) {
+      const inst = status.instances.find((i) => i.id === selectedInstanceId);
+      if (inst) {
+        setSelectedInstallTemplate((inst.skill_template as SkillTemplate) || "none");
+      }
+    }
+  }, [selectedInstanceId, status?.instances]);
+
+  useEffect(() => {
+    if (activeTab === "skill" && selectedInstanceId) {
+      api.get(`/qagent/skills/templates/${selectedInstanceId}`)
+        .then((res) => {
+          const templates = res.data as SkillTemplateInfo[];
+          if (!templates.find((t) => t.id === "none")) {
+            templates.push({ id: "none", label: "无", desc: "通用模式，不预设特定技能", skills: [] });
+          }
+          setSkillTemplates(templates);
+        })
+        .catch(() => {});
+
+      const currentStatus = selectedInstanceId ? instanceStatusMap[selectedInstanceId] : null;
+      if (currentStatus?.status === "running") {
+        setIsLoadingInstalled(true);
+        api.get(`/qagent/skills/installed/${selectedInstanceId}`)
+          .then((res) => setInstalledSkills(res.data as InstalledSkill[]))
+          .catch(() => {})
+          .finally(() => setIsLoadingInstalled(false));
+      } else {
+        setInstalledSkills([]);
+      }
+    }
+  }, [activeTab, selectedInstanceId, instanceStatusMap, selectedInstanceId ? instanceStatusMap[selectedInstanceId]?.status : undefined]);
 
   useEffect(() => {
     if (!status?.has_instance || !selectedInstanceId) {
@@ -209,6 +261,59 @@ const DashboardPage: React.FC = () => {
       setError(err.response?.data?.detail || "关闭实例失败，请重试");
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleInstallSkills = async () => {
+    if (!selectedInstanceId) return;
+    setError("");
+    setIsInstallingSkills(true);
+    setSkillsInstallSuccess(false);
+    try {
+      const currentRunningStatus = selectedInstanceId ? instanceStatusMap[selectedInstanceId]?.status === "running" : false;
+      await api.post(`/qagent/skills/install/${selectedInstanceId}`, { skill_template: selectedInstallTemplate });
+      await fetchStatus();
+      setSkillsInstallSuccess(true);
+      setTimeout(() => setSkillsInstallSuccess(false), 3000);
+      if (currentRunningStatus) {
+        const res = await api.get(`/qagent/skills/installed/${selectedInstanceId}`);
+        setInstalledSkills(res.data as InstalledSkill[]);
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "安装技能失败，请重试");
+    } finally {
+      setIsInstallingSkills(false);
+    }
+  };
+
+  const handleUninstallSkill = async (cmSkillId: number) => {
+    if (!selectedInstanceId) return;
+    setError("");
+    try {
+      await api.delete(`/qagent/skills/installed/${selectedInstanceId}/${cmSkillId}`);
+      setInstalledSkills((prev) => prev.filter((s) => s.id !== cmSkillId));
+      await fetchStatus();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "卸载技能失败，请重试");
+    }
+  };
+
+  const handleSyncSkills = async () => {
+    if (!selectedInstanceId) return;
+    setError("");
+    setIsSyncingSkills(true);
+    try {
+      await api.post(`/qagent/skills/sync/${selectedInstanceId}`);
+      const res = await api.get(`/qagent/skills/templates/${selectedInstanceId}`);
+      const templates = res.data as SkillTemplateInfo[];
+      if (!templates.find((t) => t.id === "none")) {
+        templates.push({ id: "none", label: "无", desc: "通用模式，不预设特定技能", skills: [] });
+      }
+      setSkillTemplates(templates);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "同步技能失败，请重试");
+    } finally {
+      setIsSyncingSkills(false);
     }
   };
 
@@ -427,29 +532,6 @@ const DashboardPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                      预设技能模板
-                    </label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {SKILL_TEMPLATES.map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => setSkillTemplate(t.id)}
-                          className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all text-left ${
-                            skillTemplate === t.id
-                              ? "border-green-500 bg-green-500/10 text-green-400"
-                              : "border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600"
-                          }`}
-                        >
-                          <span className="block">{t.label}</span>
-                          <span className="block text-[11px] font-normal text-slate-500 mt-0.5">{t.desc}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
                   <h3 className="text-sm font-medium text-slate-300">容器配置</h3>
 
                   <div className="space-y-3">
@@ -596,19 +678,11 @@ const DashboardPage: React.FC = () => {
                           <span className="text-slate-300">{selectedInstance.instance_type}</span>
                         </>
                       )}
-                      {selectedInstance.skill_template && selectedInstance.skill_template !== "none" && (
-                        <>
-                          {" · "}
-                          <span className="text-green-400">
-                            {SKILL_TEMPLATES.find((t) => t.id === selectedInstance.skill_template)?.label || selectedInstance.skill_template}
-                          </span>
-                        </>
-                      )}
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
                   <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Cpu className="w-4 h-4 text-amber-400" />
@@ -629,15 +703,6 @@ const DashboardPage: React.FC = () => {
                       <span className="text-slate-300 text-sm font-medium">磁盘</span>
                     </div>
                     <p className="text-white text-lg font-bold">{selectedInstance.disk_gb} GB</p>
-                  </div>
-                  <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Sparkles className="w-4 h-4 text-purple-400" />
-                      <span className="text-slate-300 text-sm font-medium">预设技能模板</span>
-                    </div>
-                    <p className="text-white text-lg font-bold">
-                      {SKILL_TEMPLATES.find((t) => t.id === selectedInstance.skill_template)?.label || "无"}
-                    </p>
                   </div>
                 </div>
 
@@ -703,8 +768,170 @@ const DashboardPage: React.FC = () => {
             </motion.div>
           ) : activeTab === "token" ? (
             <TokenConfigCard instanceId={selectedInstance?.id} defaultProvider={selectedInstance?.default_provider} />
-          ) : (
+          ) : activeTab === "channel" ? (
             <ChannelConfigCard instanceId={selectedInstance?.id} />
+          ) : (
+            /* Skill Panel (技能配置) */
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left: available templates */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="bg-slate-900 border border-slate-800 rounded-2xl p-8"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center">
+                      <Sparkles className="w-6 h-6 text-purple-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">可安装技能</h2>
+                      <p className="text-slate-400 text-sm">同步自 ClawManager</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleSyncSkills}
+                    disabled={isSyncingSkills || selectedStatus?.status !== "running"}
+                    className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSyncingSkills ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                    同步
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {skillTemplates.map((t) => {
+                    const isSelected = selectedInstallTemplate === t.id;
+                    const isCurrent = selectedInstance?.skill_template === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setSelectedInstallTemplate(t.id as SkillTemplate)}
+                        className={`w-full p-4 rounded-xl border text-left transition-all ${
+                          isSelected
+                            ? "border-green-500 bg-green-500/10"
+                            : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm font-medium ${isSelected ? "text-green-400" : "text-slate-300"}`}>
+                                {t.label}
+                              </span>
+                              {isCurrent && (
+                                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">
+                                  当前启用
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-slate-500 text-xs mt-1">{t.desc}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedInstallTemplate(t.id as SkillTemplate);
+                              }}
+                              disabled={isInstallingSkills || selectedStatus?.status !== "running"}
+                              className="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/40 text-purple-400 rounded-lg text-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              安装
+                            </button>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+
+              {/* Right: installed skills */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="bg-slate-900 border border-slate-800 rounded-2xl p-8"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center">
+                      <Download className="w-6 h-6 text-green-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">已安装技能</h2>
+                      <p className="text-slate-400 text-sm">当前实例上已激活的技能</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (!selectedInstanceId || selectedStatus?.status !== "running") return;
+                      setIsLoadingInstalled(true);
+                      api.get(`/qagent/skills/installed/${selectedInstanceId}`)
+                        .then((res) => setInstalledSkills(res.data as InstalledSkill[]))
+                        .catch(() => {})
+                        .finally(() => setIsLoadingInstalled(false));
+                    }}
+                    disabled={isLoadingInstalled || selectedStatus?.status !== "running"}
+                    className="px-4 py-2 bg-green-500/20 hover:bg-green-500/40 text-green-400 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoadingInstalled ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                    刷新
+                  </button>
+                </div>
+
+                {isLoadingInstalled ? (
+                  <div className="flex flex-col items-center justify-center py-10 gap-3">
+                    <Loader2 className="w-6 h-6 text-slate-500 animate-spin" />
+                    <p className="text-slate-500 text-sm">加载中...</p>
+                  </div>
+                ) : selectedStatus?.status !== "running" ? (
+                  <div className="py-10 text-center">
+                    <p className="text-slate-500 text-sm">实例未运行，无法查看已安装技能</p>
+                  </div>
+                ) : installedSkills.length === 0 ? (
+                  <div className="py-10 text-center">
+                    <p className="text-slate-500 text-sm">暂无已安装的技能</p>
+                    <p className="text-slate-600 text-xs mt-1">从左侧选择一个技能安装</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {installedSkills.map((skill) => (
+                      <div
+                        key={skill.id}
+                        className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700 rounded-xl"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
+                            <CheckCircle className="w-5 h-5 text-green-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-slate-200">{skill.name}</p>
+                            <p className="text-slate-500 text-xs">{skill.description || "—"}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleUninstallSkill(skill.id)}
+                          className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm transition-all"
+                        >
+                          卸载
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            </div>
           )}
         </main>
       </div>

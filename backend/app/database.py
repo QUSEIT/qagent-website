@@ -50,6 +50,24 @@ def init_db():
                 conn.execute(text("ALTER TABLE instances ADD COLUMN disk_gb INTEGER DEFAULT 20"))
                 conn.commit()
 
+            result = conn.execute(text("PRAGMA table_info(feishu_channels)"))
+            feishu_columns = [row[1] for row in result]
+            if "status" not in feishu_columns:
+                conn.execute(text("ALTER TABLE feishu_channels ADD COLUMN status VARCHAR(20) DEFAULT 'pending'"))
+                conn.commit()
+
+            result = conn.execute(text("PRAGMA table_info(qq_channels)"))
+            qq_columns = [row[1] for row in result]
+            if "status" not in qq_columns:
+                conn.execute(text("ALTER TABLE qq_channels ADD COLUMN status VARCHAR(20) DEFAULT 'pending'"))
+                conn.commit()
+
+            result = conn.execute(text("PRAGMA table_info(skill_sets)"))
+            skill_sets_columns = [row[1] for row in result]
+            if "clawmanager_skill_id" not in skill_sets_columns:
+                conn.execute(text("ALTER TABLE skill_sets ADD COLUMN clawmanager_skill_id INTEGER"))
+                conn.commit()
+
             # Migrate legacy single-instance data to instances table
             result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='instances'"))
             if result.fetchone():

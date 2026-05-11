@@ -131,5 +131,17 @@ class ClawManagerClient:
     def exec_instance(self, instance_id: int, command: str) -> Dict[str, Any]:
         return self._request("POST", f"/api/v1/instances/{instance_id}/exec", json={"command": ["/bin/sh", "-c", command]}, timeout=300)
 
+    def list_skills(self) -> Dict[str, Any]:
+        return self._request("GET", "/api/v1/skills")
+
+    def attach_skill_to_instance(self, instance_id: int, skill_id: int) -> Dict[str, Any]:
+        return self._request("POST", f"/api/v1/instances/{instance_id}/skills", json={"skill_id": skill_id})
+
+    def list_instance_skills(self, instance_id: int) -> Dict[str, Any]:
+        return self._request("GET", f"/api/v1/instances/{instance_id}/skills")
+
+    def detach_skill_from_instance(self, instance_id: int, skill_id: int) -> Dict[str, Any]:
+        return self._request("DELETE", f"/api/v1/instances/{instance_id}/skills/{skill_id}")
+
 
 clawmanager_client = ClawManagerClient()

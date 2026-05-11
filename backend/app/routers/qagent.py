@@ -9,13 +9,14 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models import User, Instance, TokenConfig, FeishuChannel, QQChannel
+from app.models import User, Instance, TokenConfig, FeishuChannel, QQChannel, SkillSet, Skill
 from app.schemas import (
     QAgentStatus, QAgentCreateResponse, QAgentDeleteResponse, QAgentAccessResponse,
     QAgentInstanceStatus, QAgentExecRequest, InstanceInfo,
     TokenConfigCreate, TokenConfigOut,
     FeishuQRResponse, FeishuPollResponse, FeishuChannelOut,
     QQQRResponse, QQPollResponse, QQChannelOut,
+    SkillSetOut, SkillOut, SkillSyncResponse,
 )
 from app.services.clawmanager import clawmanager_client, ClawManagerError
 from app.services.feishu import create_session, get_session, delete_session, FeishuError
@@ -216,6 +217,10 @@ def exec_qagent(
             clawmanager_client.base_url,
             instance.clawmanager_instance_id,
         )
+        if e.status_code == 409 and "not running" in e.detail:
+            raise HTTPException(status_code=503, detail="实例未运行，请稍后重试")
+        if e.status_code == 409 and "not ready" in e.detail:
+            raise HTTPException(status_code=503, detail="实例尚未就绪，请稍后重试")
         raise HTTPException(
             status_code=e.status_code if e.status_code >= 400 else 500,
             detail=e.detail,
@@ -399,6 +404,7 @@ def feishu_poll(
                     existing.app_secret = result["app_secret"]
                     existing.owner_open_id = result.get("owner_open_id")
                     existing.tenant_brand = result.get("tenant_brand", "feishu")
+                    existing.status = "pending"
                 else:
                     channel = FeishuChannel(
                         user_id=user.id,
@@ -407,45 +413,10 @@ def feishu_poll(
                         app_secret=result["app_secret"],
                         owner_open_id=result.get("owner_open_id"),
                         tenant_brand=result.get("tenant_brand", "feishu"),
+                        status="pending",
                     )
                     db.add(channel)
                 db.commit()
-
-                # Configure OpenClaw via pod exec
-                app_id = result["app_id"]
-                app_secret = result["app_secret"]
-                owner_open_id = result.get("owner_open_id")
-                tenant_brand = result.get("tenant_brand", "feishu")
-                config_items = [
-                    {"path": "channels.feishu.enabled", "value": True},
-                    {"path": "channels.feishu.appId", "value": app_id},
-                    {"path": "channels.feishu.appSecret", "value": app_secret},
-                    {"path": "channels.feishu.domain", "value": tenant_brand},
-                    {"path": "channels.feishu.dmPolicy", "value": "allowlist"},
-                    {"path": "channels.feishu.allowFrom", "value": [owner_open_id] if owner_open_id else []},
-                    {"path": "channels.feishu.groupPolicy", "value": "allowlist"},
-                ]
-                batch_json = json.dumps(config_items, ensure_ascii=False)
-                command = f"openclaw config set --batch-json {shlex.quote(batch_json)}"
-                logger.info(
-                    "Executing ClawManager exec for feishu config (instance_id=%s, cm_id=%s)",
-                    instance.id,
-                    instance.clawmanager_instance_id,
-                )
-                logger.info("Exec command: %s", command)
-                try:
-                    exec_result = clawmanager_client.exec_instance(instance.clawmanager_instance_id, command)
-                    logger.info(
-                        "ClawManager exec succeeded for feishu config (instance_id=%s, result=%s)",
-                        instance.id,
-                        exec_result,
-                    )
-                except Exception:
-                    logger.exception(
-                        "ClawManager exec failed for feishu config (instance_id=%s, cm_id=%s)",
-                        instance.id,
-                        instance.clawmanager_instance_id,
-                    )
         delete_session(device_code)
         return FeishuPollResponse(
             status="success",
@@ -516,38 +487,17 @@ def qq_poll(
                 if existing:
                     existing.app_id = app_id
                     existing.app_secret = app_secret
+                    existing.status = "pending"
                 else:
                     channel = QQChannel(
                         user_id=user.id,
                         instance_id=target_instance_id,
                         app_id=app_id,
                         app_secret=app_secret,
+                        status="pending",
                     )
                     db.add(channel)
                 db.commit()
-
-                # Configure OpenClaw via pod exec
-                token = f"{app_id}:{app_secret}"
-                command = f"openclaw channels add --channel qqbot --token {shlex.quote(token)}"
-                logger.info(
-                    "Executing ClawManager exec for qqbot config (instance_id=%s, cm_id=%s)",
-                    instance.id,
-                    instance.clawmanager_instance_id,
-                )
-                logger.info("Exec command: %s", command)
-                try:
-                    exec_result = clawmanager_client.exec_instance(instance.clawmanager_instance_id, command)
-                    logger.info(
-                        "ClawManager exec succeeded for qqbot config (instance_id=%s, result=%s)",
-                        instance.id,
-                        exec_result,
-                    )
-                except Exception:
-                    logger.exception(
-                        "ClawManager exec failed for qqbot config (instance_id=%s, cm_id=%s)",
-                        instance.id,
-                        instance.clawmanager_instance_id,
-                    )
         delete_qq_session(session_id)
         return QQPollResponse(status="success", app_id=app_id)
 
@@ -564,3 +514,288 @@ def get_qq_channel(instance_id: int, user: User = Depends(get_current_user), db:
     if not channel:
         raise HTTPException(status_code=404, detail="QQ channel not found")
     return channel
+
+
+@router.post("/channel/feishu/save/{instance_id}")
+def save_feishu_channel(instance_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+
+    channel = db.query(FeishuChannel).filter(FeishuChannel.instance_id == instance_id, FeishuChannel.user_id == user.id).first()
+    if not channel:
+        raise HTTPException(status_code=404, detail="Feishu channel not found")
+
+    app_id = channel.app_id
+    app_secret = channel.app_secret
+    owner_open_id = channel.owner_open_id
+    tenant_brand = channel.tenant_brand
+    config_items = [
+        {"path": "channels.feishu.enabled", "value": True},
+        {"path": "channels.feishu.appId", "value": app_id},
+        {"path": "channels.feishu.appSecret", "value": app_secret},
+        {"path": "channels.feishu.domain", "value": tenant_brand},
+        {"path": "channels.feishu.dmPolicy", "value": "allowlist"},
+        {"path": "channels.feishu.allowFrom", "value": [owner_open_id] if owner_open_id else []},
+        {"path": "channels.feishu.groupPolicy", "value": "allowlist"},
+    ]
+    batch_json = json.dumps(config_items, ensure_ascii=False)
+    command = f"openclaw config set --batch-json {shlex.quote(batch_json)}"
+    logger.info(
+        "Executing ClawManager exec for feishu config (instance_id=%s, cm_id=%s)",
+        instance.id,
+        instance.clawmanager_instance_id,
+    )
+    logger.info("Exec command: %s", command)
+    try:
+        result = clawmanager_client.exec_instance(instance.clawmanager_instance_id, command)
+        channel.status = "active"
+        db.commit()
+        logger.info(
+            "ClawManager exec succeeded for feishu config (instance_id=%s, result=%s)",
+            instance.id,
+            result,
+        )
+        return {"message": "Feishu channel saved", "result": result}
+    except Exception as e:
+        logger.exception(
+            "ClawManager exec failed for feishu config (instance_id=%s, cm_id=%s)",
+            instance.id,
+            instance.clawmanager_instance_id,
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to save feishu channel: {type(e).__name__}: {e}")
+
+
+@router.post("/channel/qq/save/{instance_id}")
+def save_qq_channel(instance_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+
+    channel = db.query(QQChannel).filter(QQChannel.instance_id == instance_id, QQChannel.user_id == user.id).first()
+    if not channel:
+        raise HTTPException(status_code=404, detail="QQ channel not found")
+
+    token = f"{channel.app_id}:{channel.app_secret}"
+    command = f"openclaw channels add --channel qqbot --token {shlex.quote(token)}"
+    logger.info(
+        "Executing ClawManager exec for qqbot config (instance_id=%s, cm_id=%s)",
+        instance.id,
+        instance.clawmanager_instance_id,
+    )
+    logger.info("Exec command: %s", command)
+    try:
+        result = clawmanager_client.exec_instance(instance.clawmanager_instance_id, command)
+        logger.info(
+            "ClawManager exec succeeded for qqbot config (instance_id=%s, result=%s)",
+            instance.id,
+            result,
+        )
+        return {"message": "QQ channel saved", "result": result}
+    except Exception as e:
+        logger.exception(
+            "ClawManager exec failed for qqbot config (instance_id=%s, cm_id=%s)",
+            instance.id,
+            instance.clawmanager_instance_id,
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to save qq channel: {type(e).__name__}: {e}")
+
+
+@router.post("/skills/install/{instance_id}")
+def install_skills(
+    instance_id: int,
+    req: dict,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+
+    skill_template = req.get("skill_template", instance.skill_template) or "none"
+
+    if skill_template == "none":
+        command = "openclaw skills reset"
+        try:
+            result = clawmanager_client.exec_instance(instance.clawmanager_instance_id, command)
+            instance.skill_template = "none"
+            db.commit()
+            return {"message": "Skills reset", "result": result}
+        except ClawManagerError as e:
+            logger.exception("ClawManager exec_instance failed for skills reset")
+            if e.status_code == 409 and "not running" in e.detail:
+                raise HTTPException(status_code=503, detail="实例未运行，请稍后重试")
+            if e.status_code == 409 and "not ready" in e.detail:
+                raise HTTPException(status_code=503, detail="实例尚未就绪，请稍后重试")
+            raise HTTPException(status_code=e.status_code if e.status_code >= 400 else 500, detail=e.detail)
+        except Exception as e:
+            logger.exception("ClawManager exec_instance failed for skills reset")
+            raise HTTPException(status_code=500, detail=f"Failed to reset skills: {type(e).__name__}: {e}")
+
+    skill_set = db.query(SkillSet).filter(SkillSet.skill_id == skill_template).first()
+    if not skill_set or not skill_set.clawmanager_skill_id:
+        raise HTTPException(status_code=404, detail="Skill not found")
+
+    try:
+        result = clawmanager_client.attach_skill_to_instance(instance.clawmanager_instance_id, skill_set.clawmanager_skill_id)
+        instance.skill_template = skill_template
+        db.commit()
+        return {"message": "Skill attached", "result": result}
+    except ClawManagerError as e:
+        logger.exception("ClawManager attach_skill failed")
+        if e.status_code == 409 and "not running" in e.detail:
+            raise HTTPException(status_code=503, detail="实例未运行，请稍后重试")
+        if e.status_code == 409 and "not ready" in e.detail:
+            raise HTTPException(status_code=503, detail="实例尚未就绪，请稍后重试")
+        raise HTTPException(status_code=e.status_code if e.status_code >= 400 else 500, detail=e.detail)
+    except Exception as e:
+        logger.exception("ClawManager attach_skill failed")
+        raise HTTPException(status_code=500, detail=f"Failed to attach skill: {type(e).__name__}: {e}")
+
+
+@router.post("/skills/sync/{instance_id}", response_model=SkillSyncResponse)
+def sync_skills(
+    instance_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+
+    try:
+        result = clawmanager_client.list_skills()
+    except ClawManagerError as e:
+        logger.exception("ClawManager list_skills failed")
+        raise HTTPException(status_code=e.status_code if e.status_code >= 400 else 500, detail=e.detail)
+    except Exception as e:
+        logger.exception("ClawManager list_skills failed")
+        raise HTTPException(status_code=500, detail=f"获取技能列表失败: {type(e).__name__}: {e}")
+
+    data = result.get("data", [])
+    if not data:
+        raise HTTPException(status_code=502, detail="ClawManager 返回为空")
+
+    # ClawManager returns: [{"id": 1, "name": "xxx", "skill_key": "yyy", "description": "...", "status": "active", ...}]
+    # Map each ClawManager skill to a SkillSet (grouped by source_type for clarity)
+    # Clear existing SkillSets and Skills for this instance_type
+    db.query(Skill).filter(Skill.skill_set_id.in_(
+        db.query(SkillSet.id).filter(SkillSet.instance_type == instance.instance_type)
+    )).delete(synchronize_session="fetch")
+    db.query(SkillSet).filter(SkillSet.instance_type == instance.instance_type).delete(synchronize_session="fetch")
+    db.commit()
+
+    total_skills = 0
+    for idx, skill_item in enumerate(data):
+        skill_name = (skill_item.get("name") or "").strip()
+        if not skill_name or skill_item.get("status") != "active":
+            continue
+        skill_key = (skill_item.get("skill_key") or f"skill-{skill_item.get('id')}").strip()
+        skill_desc = (skill_item.get("description") or "").strip()
+        clawmanager_id = skill_item.get("id")
+        skill_set = SkillSet(
+            name=skill_name,
+            description=skill_desc,
+            instance_type=instance.instance_type,
+            skill_id=skill_key,
+            clawmanager_skill_id=clawmanager_id,
+            icon=skill_name[0].upper() if skill_name else "?",
+            sort_order=idx,
+        )
+        db.add(skill_set)
+        db.flush()
+
+        skill_obj = Skill(
+            skill_set_id=skill_set.id,
+            name=skill_name,
+            description=skill_desc,
+            icon=skill_name[0].upper() if skill_name else "?",
+            sort_order=0,
+        )
+        db.add(skill_obj)
+        total_skills += 1
+
+    db.commit()
+    skill_sets_count = db.query(SkillSet).filter(SkillSet.instance_type == instance.instance_type).count()
+    return SkillSyncResponse(message="同步成功", skill_sets_count=skill_sets_count, skills_count=total_skills)
+
+
+@router.get("/skills/templates/{instance_id}")
+def get_skill_templates(
+    instance_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+
+    skill_sets = db.query(SkillSet).filter(SkillSet.instance_type == instance.instance_type).order_by(SkillSet.sort_order).all()
+    result = []
+    for ss in skill_sets:
+        skills = db.query(Skill).filter(Skill.skill_set_id == ss.id).order_by(Skill.sort_order).all()
+        result.append({
+            "id": ss.skill_id,
+            "label": ss.name,
+            "desc": ss.description or "",
+            "skills": [{"name": s.name, "desc": s.description or ""} for s in skills],
+        })
+    return result
+
+
+@router.get("/skills/installed/{instance_id}")
+def get_installed_skills(
+    instance_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+
+    try:
+        result = clawmanager_client.list_instance_skills(instance.clawmanager_instance_id)
+    except ClawManagerError as e:
+        logger.exception("ClawManager list_instance_skills failed")
+        if e.status_code == 409 and "not running" in e.detail:
+            raise HTTPException(status_code=503, detail="实例未运行，请稍后重试")
+        raise HTTPException(status_code=e.status_code if e.status_code >= 400 else 500, detail=e.detail)
+    except Exception as e:
+        logger.exception("ClawManager list_instance_skills failed")
+        raise HTTPException(status_code=500, detail=f"获取已安装技能失败: {type(e).__name__}: {e}")
+
+    items = result.get("data", [])
+    return [
+        {
+            "id": item.get("id"),
+            "skill_id": item.get("skill", {}).get("skill_key") if item.get("skill") else None,
+            "name": item.get("skill", {}).get("name") if item.get("skill") else "Unknown",
+            "description": item.get("skill", {}).get("description") if item.get("skill") else "",
+            "status": item.get("status"),
+        }
+        for item in items
+    ]
+
+
+@router.delete("/skills/installed/{instance_id}/{cm_skill_id}")
+def uninstall_skill(
+    instance_id: int,
+    cm_skill_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+
+    try:
+        clawmanager_client.detach_skill_from_instance(instance.clawmanager_instance_id, cm_skill_id)
+        return {"message": "Skill uninstalled"}
+    except ClawManagerError as e:
+        logger.exception("ClawManager detach_skill failed")
+        if e.status_code == 409 and "not running" in e.detail:
+            raise HTTPException(status_code=503, detail="实例未运行，请稍后重试")
+        raise HTTPException(status_code=e.status_code if e.status_code >= 400 else 500, detail=e.detail)
+    except Exception as e:
+        logger.exception("ClawManager detach_skill failed")
+        raise HTTPException(status_code=500, detail=f"卸载技能失败: {type(e).__name__}: {e}")

@@ -130,6 +130,7 @@ class FeishuChannelOut(BaseModel):
     app_id: str
     owner_open_id: Optional[str] = None
     tenant_brand: str
+    status: str = "pending"
     created_at: datetime
 
     class Config:
@@ -153,7 +154,39 @@ class QQChannelOut(BaseModel):
     id: int
     instance_id: int
     app_id: str
+    status: str = "pending"
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class SkillSetOut(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    instance_type: str
+    skill_id: str
+    icon: Optional[str] = None
+    sort_order: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class SkillOut(BaseModel):
+    id: int
+    skill_set_id: int
+    name: str
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    sort_order: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class SkillSyncResponse(BaseModel):
+    message: str
+    skill_sets_count: int
+    skills_count: int
