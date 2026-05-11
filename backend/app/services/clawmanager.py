@@ -131,8 +131,16 @@ class ClawManagerClient:
     def get_instance_status(self, instance_id: int) -> Dict[str, Any]:
         return self._request("GET", f"/api/v1/instances/{instance_id}/status")
 
-    def export_openclaw(self, instance_id: int) -> Dict[str, Any]:
-        return self._request("GET", f"/api/v1/instances/{instance_id}/openclaw/export")
+    def export_openclaw_raw(self, instance_id: int) -> httpx.Response:
+        token = self._ensure_auth()
+        url = f"{self.base_url}/api/v1/instances/{instance_id}/openclaw/export"
+        headers = {"Authorization": f"Bearer {token}"}
+        resp = httpx.get(url, headers=headers, timeout=60)
+        if resp.status_code == 401:
+            self._login()
+            headers["Authorization"] = f"Bearer {self._access_token}"
+            resp = httpx.get(url, headers=headers, timeout=60)
+        return resp
 
     def import_openclaw(self, instance_id: int, file_content: bytes, filename: str) -> Dict[str, Any]:
         from httpx import HTTPError

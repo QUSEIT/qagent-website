@@ -4,7 +4,7 @@ import re
 import shlex
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -843,7 +843,7 @@ def restart_instance(instance_id: int, user: User = Depends(get_current_user), d
 
 
 @router.get("/instance/{instance_id}/export")
-def export_instance(instance_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def export_instance(instance_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
     if not instance:
         raise HTTPException(status_code=404, detail="QAgent not found")
@@ -851,11 +851,23 @@ def export_instance(instance_id: int, user: User = Depends(get_current_user), db
         raise HTTPException(status_code=400, detail="功能正在实现中")
 
     try:
-        result = clawmanager_client.export_openclaw(instance.clawmanager_instance_id)
-        return result
-    except ClawManagerError as e:
-        logger.exception("ClawManager export_openclaw failed")
-        raise HTTPException(status_code=e.status_code if e.status_code >= 400 else 500, detail=e.detail)
+        resp = clawmanager_client.export_openclaw_raw(instance.clawmanager_instance_id)
+        if resp.is_error:
+            try:
+                body = resp.json()
+                detail = body.get("error") or body.get("message") or resp.text
+            except Exception:
+                detail = resp.text
+            raise HTTPException(status_code=resp.status_code, detail=detail)
+        headers = dict(resp.headers)
+        content_disposition = headers.get("content-disposition", "attachment")
+        return Response(
+            content=resp.content,
+            media_type=headers.get("content-type", "application/octet-stream"),
+            headers={"Content-Disposition": content_disposition},
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("ClawManager export_openclaw failed")
         raise HTTPException(status_code=500, detail=f"导出配置失败: {type(e).__name__}: {e}")

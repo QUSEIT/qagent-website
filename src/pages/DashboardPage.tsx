@@ -345,11 +345,24 @@ const DashboardPage: React.FC = () => {
     if (!selectedInstanceId) return;
     setError("");
     try {
-      const res = await api.get(`/qagent/instance/${selectedInstanceId}/export`);
-      const url = res.data?.data?.download_url;
-      if (url) {
-        window.open(url, "_blank");
+      const res = await api.get(`/qagent/instance/${selectedInstanceId}/export`, {
+        responseType: "blob",
+      });
+      const blob = new Blob([res.data], { type: (res.headers["content-type"] as string) || "application/octet-stream" });
+      const contentDisposition = res.headers["content-disposition"];
+      let filename = "export.tar.gz";
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename[^;=\n]*=(?:(\\?['"])(.*?)\1|[^;\n]*)/);
+        if (match) filename = match[2] || filename;
       }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err: any) {
       setError(err.response?.data?.detail || "导出失败，请重试");
     }
