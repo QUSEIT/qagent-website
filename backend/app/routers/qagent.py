@@ -973,7 +973,7 @@ def create_profile(instance_id: int, req: ProfileCreate, user: User = Depends(ge
         name=req.name,
         description=req.description or "",
         system_prompt=req.system_prompt or "",
-        model=req.model or "gpt-4o",
+        model=req.model or "kimi-k2.6",
         temperature=req.temperature if req.temperature is not None else 0.7,
         skills=json.dumps(req.skills or []) if req.skills else "",
         is_default=1 if (req.is_default or existing_count == 0) else 0,

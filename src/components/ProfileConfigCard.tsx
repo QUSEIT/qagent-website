@@ -30,7 +30,7 @@ const DEFAULT_FORM: Omit<Profile, "id" | "instance_id" | "created_at" | "updated
   name: "",
   description: "",
   system_prompt: "",
-  model: "gpt-4o",
+  model: "kimi-k2.6",
   temperature: 0.7,
   skills: [],
   is_default: 0,

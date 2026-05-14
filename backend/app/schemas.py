@@ -196,7 +196,7 @@ class ProfileCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
     system_prompt: Optional[str] = Field("", max_length=5000)
-    model: Optional[str] = Field("gpt-4o", max_length=100)
+    model: Optional[str] = Field("kimi-k2.6", max_length=100)
     temperature: Optional[float] = Field(0.7, ge=0, le=2)
     skills: Optional[List[str]] = Field(default_factory=list)
     is_default: Optional[int] = Field(0)  # 0=no, 1=yes
