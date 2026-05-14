@@ -141,3 +141,25 @@ class Instance(Base):
     user = relationship("User", back_populates="instances")
     feishu_channels = relationship("FeishuChannel", back_populates="instance", cascade="all, delete-orphan")
     qq_channels = relationship("QQChannel", back_populates="instance", cascade="all, delete-orphan")
+    profiles = relationship("Profile", back_populates="instance", cascade="all, delete-orphan")
+
+
+class Profile(Base):
+    __tablename__ = "profiles"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    instance_id = Column(Integer, ForeignKey("instances.id"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(String(500), nullable=True)
+    system_prompt = Column(String(5000), nullable=True, default="")
+    model = Column(String(100), nullable=True)
+    temperature = Column(Float, nullable=True, default=0.7)
+    skills = Column(String(1000), nullable=True, default="")  # JSON array as string
+    is_default = Column(Integer, nullable=False, default=0)  # 0=normal, 1=default
+    is_active = Column(Integer, nullable=False, default=0)    # 0=normal, 1=active
+    agent_id = Column(String(100), nullable=True)  # OpenClaw agent id, null for HermesAgent
+    soul_content = Column(String(10000), nullable=True)  # HermesAgent SOUL.md content
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    instance = relationship("Instance", back_populates="profiles")

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models import User, Instance, TokenConfig, FeishuChannel, QQChannel, SkillSet, Skill
+from app.models import User, Instance, TokenConfig, FeishuChannel, QQChannel, SkillSet, Skill, Profile
 from app.schemas import (
     QAgentStatus, QAgentCreateResponse, QAgentDeleteResponse, QAgentAccessResponse,
     QAgentInstanceStatus, QAgentExecRequest, InstanceInfo,
@@ -17,6 +17,7 @@ from app.schemas import (
     FeishuQRResponse, FeishuPollResponse, FeishuChannelOut,
     QQQRResponse, QQPollResponse, QQChannelOut,
     SkillSetOut, SkillOut, SkillSyncResponse,
+    ProfileCreate, ProfileUpdate, ProfileOut,
 )
 from app.services.clawmanager import clawmanager_client, ClawManagerError
 from app.services.feishu import create_session, get_session, delete_session, FeishuError
@@ -891,3 +892,195 @@ async def import_instance(instance_id: int, file: UploadFile = File(...), user: 
     except Exception as e:
         logger.exception("ClawManager import_openclaw failed")
         raise HTTPException(status_code=500, detail=f"导入配置失败: {type(e).__name__}: {e}")
+
+
+# ── Profile CRUD ─────────────────────────────────────────────────────────────
+
+def _profile_out(profile: Profile) -> ProfileOut:
+    skills_raw = profile.skills or ""
+    try:
+        skills_list = json.loads(skills_raw) if skills_raw else []
+    except Exception:
+        skills_list = []
+    return ProfileOut(
+        id=profile.id,
+        instance_id=profile.instance_id,
+        name=profile.name,
+        description=profile.description,
+        system_prompt=profile.system_prompt,
+        model=profile.model,
+        temperature=profile.temperature,
+        skills=skills_list,
+        is_default=profile.is_default,
+        is_active=profile.is_active,
+        agent_id=profile.agent_id,
+        soul_content=profile.soul_content,
+        created_at=profile.created_at,
+        updated_at=profile.updated_at,
+    )
+
+
+def _sync_profile_to_agent(instance: Instance, profile: Profile, db: Session):
+    """Write Profile config into the running agent via exec."""
+    if instance.instance_type == "OpenClaw":
+        # OpenClaw: use agents.create / agents.update gateway methods
+        if profile.is_default:
+            # Mark this agent as the default in OpenClaw config
+            cmd = f"openclaw agents default {profile.agent_id}" if profile.agent_id else ""
+            if cmd:
+                clawmanager_client.exec_instance(instance.clawmanager_instance_id, cmd)
+        # system_prompt goes into SOUL.md via workspace file write
+        if profile.system_prompt:
+            escaped_prompt = profile.system_prompt.replace('"', '\\"').replace('\n', '\\n')
+            cmd = f'openclaw workspace write SOUL.md "{escaped_prompt}"'
+            clawmanager_client.exec_instance(instance.clawmanager_instance_id, cmd)
+    elif instance.instance_type == "HermesAgent":
+        # HermesAgent: write SOUL.md and config.yaml directly
+        if profile.soul_content:
+            import base64
+            encoded = base64.b64encode(profile.soul_content.encode()).decode()
+            cmd = f'echo "{encoded}" | base64 -d > ~/.hermes/SOUL.md'
+            clawmanager_client.exec_instance(instance.clawmanager_instance_id, cmd)
+        if profile.model or profile.temperature:
+            import yaml
+            config_path = "~/.hermes/config.yaml"
+            # For HermesAgent, update model via CLI
+            if profile.model:
+                cmd = f"hermes model set {profile.model}"
+                clawmanager_client.exec_instance(instance.clawmanager_instance_id, cmd)
+
+
+@router.get("/profiles/{instance_id}", response_model=list[ProfileOut])
+def list_profiles(instance_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+    profiles = db.query(Profile).filter(Profile.instance_id == instance_id).order_by(Profile.created_at).all()
+    return [_profile_out(p) for p in profiles]
+
+
+@router.post("/profiles/{instance_id}", response_model=ProfileOut)
+def create_profile(instance_id: int, req: ProfileCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+
+    # If this is the first profile, make it default
+    existing_count = db.query(Profile).filter(Profile.instance_id == instance_id).count()
+
+    profile = Profile(
+        instance_id=instance_id,
+        name=req.name,
+        description=req.description or "",
+        system_prompt=req.system_prompt or "",
+        model=req.model or "gpt-4o",
+        temperature=req.temperature if req.temperature is not None else 0.7,
+        skills=json.dumps(req.skills or []) if req.skills else "",
+        is_default=1 if (req.is_default or existing_count == 0) else 0,
+        is_active=0,
+    )
+    db.add(profile)
+    db.flush()
+
+    # Create agent in OpenClaw / profile dir in HermesAgent
+    if instance.instance_type == "OpenClaw":
+        safe_name = _k8s_safe_name(req.name, fallback=f"profile-{profile.id}")
+        cmd = f"openclaw agents create --name {shlex.quote(safe_name)}"
+        try:
+            result = clawmanager_client.exec_instance(instance.clawmanager_instance_id, cmd)
+            agent_id = result.get("data", {}).get("agent", {}).get("id") or safe_name
+            profile.agent_id = agent_id
+        except Exception:
+            profile.agent_id = safe_name  # best-effort
+    elif instance.instance_type == "HermesAgent":
+        safe_name = _k8s_safe_name(req.name, fallback=f"profile-{profile.id}")
+        profile.agent_id = safe_name  # Hermes profile dir name
+
+    db.commit()
+    db.refresh(profile)
+    _sync_profile_to_agent(instance, profile, db)
+    return _profile_out(profile)
+
+
+@router.put("/profiles/{instance_id}/{profile_id}", response_model=ProfileOut)
+def update_profile(instance_id: int, profile_id: int, req: ProfileUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+
+    profile = db.query(Profile).filter(Profile.id == profile_id, Profile.instance_id == instance_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    if req.name is not None:
+        profile.name = req.name
+    if req.description is not None:
+        profile.description = req.description
+    if req.system_prompt is not None:
+        profile.system_prompt = req.system_prompt
+    if req.model is not None:
+        profile.model = req.model
+    if req.temperature is not None:
+        profile.temperature = req.temperature
+    if req.skills is not None:
+        profile.skills = json.dumps(req.skills) if req.skills else ""
+    if req.is_default is not None and req.is_default == 1:
+        # Unset all other defaults
+        db.query(Profile).filter(
+            Profile.instance_id == instance_id,
+            Profile.id != profile_id,
+        ).update({"is_default": 0})
+        profile.is_default = 1
+
+    db.commit()
+    db.refresh(profile)
+    _sync_profile_to_agent(instance, profile, db)
+    return _profile_out(profile)
+
+
+@router.delete("/profiles/{instance_id}/{profile_id}")
+def delete_profile(instance_id: int, profile_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+
+    profile = db.query(Profile).filter(Profile.id == profile_id, Profile.instance_id == instance_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # Delete agent in OpenClaw
+    if instance.instance_type == "OpenClaw" and profile.agent_id:
+        cmd = f"openclaw agents delete {profile.agent_id}"
+        try:
+            clawmanager_client.exec_instance(instance.clawmanager_instance_id, cmd)
+        except Exception:
+            pass  # best-effort
+
+    was_default = profile.is_default == 1
+    db.delete(profile)
+
+    # Promote first remaining profile to default
+    if was_default:
+        first = db.query(Profile).filter(Profile.instance_id == instance_id).order_by(Profile.created_at).first()
+        if first:
+            first.is_default = 1
+
+    db.commit()
+    return {"message": "Profile deleted"}
+
+
+@router.post("/profiles/{instance_id}/{profile_id}/default")
+def set_profile_default(instance_id: int, profile_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    instance = db.query(Instance).filter(Instance.id == instance_id, Instance.user_id == user.id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="QAgent not found")
+
+    profile = db.query(Profile).filter(Profile.id == profile_id, Profile.instance_id == instance_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    db.query(Profile).filter(Profile.instance_id == instance_id).update({"is_default": 0})
+    profile.is_default = 1
+    db.commit()
+    _sync_profile_to_agent(instance, profile, db)
+    return _profile_out(profile)

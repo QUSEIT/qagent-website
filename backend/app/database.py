@@ -68,6 +68,32 @@ def init_db():
                 conn.execute(text("ALTER TABLE skill_sets ADD COLUMN clawmanager_skill_id INTEGER"))
                 conn.commit()
 
+            # profiles table (created by Base.metadata.create_all)
+            # Check if profiles table has all expected columns
+            result = conn.execute(text("PRAGMA table_info(profiles)"))
+            profiles_columns = [row[1] for row in result]
+            if not profiles_columns:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS profiles (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        instance_id INTEGER NOT NULL,
+                        name VARCHAR(100) NOT NULL,
+                        description VARCHAR(500),
+                        system_prompt VARCHAR(5000) DEFAULT '',
+                        model VARCHAR(100),
+                        temperature REAL DEFAULT 0.7,
+                        skills VARCHAR(1000) DEFAULT '',
+                        is_default INTEGER NOT NULL DEFAULT 0,
+                        is_active INTEGER NOT NULL DEFAULT 0,
+                        agent_id VARCHAR(100),
+                        soul_content VARCHAR(10000),
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (instance_id) REFERENCES instances(id) ON DELETE CASCADE
+                    )
+                """))
+                conn.commit()
+
             # Migrate legacy single-instance data to instances table
             result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='instances'"))
             if result.fetchone():

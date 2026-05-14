@@ -190,3 +190,43 @@ class SkillSyncResponse(BaseModel):
     message: str
     skill_sets_count: int
     skills_count: int
+
+
+class ProfileCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    system_prompt: Optional[str] = Field("", max_length=5000)
+    model: Optional[str] = Field("gpt-4o", max_length=100)
+    temperature: Optional[float] = Field(0.7, ge=0, le=2)
+    skills: Optional[List[str]] = Field(default_factory=list)
+    is_default: Optional[int] = Field(0)  # 0=no, 1=yes
+
+
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    system_prompt: Optional[str] = Field(None, max_length=5000)
+    model: Optional[str] = Field(None, max_length=100)
+    temperature: Optional[float] = Field(None, ge=0, le=2)
+    skills: Optional[List[str]] = None
+    is_default: Optional[int] = None
+
+
+class ProfileOut(BaseModel):
+    id: int
+    instance_id: int
+    name: str
+    description: Optional[str] = None
+    system_prompt: Optional[str] = None
+    model: Optional[str] = None
+    temperature: Optional[float] = 0.7
+    skills: List[str] = []
+    is_default: int = 0
+    is_active: int = 0
+    agent_id: Optional[str] = None
+    soul_content: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

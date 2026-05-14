@@ -2,12 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  AlertTriangle, CheckCircle, Cpu, Download, ExternalLink, Key, Loader2, Lock, LogOut, MessageCircle, Plus, Power, RefreshCw, Rocket, RotateCcw, Server, Settings, Shield, Sparkles, Square, Trash2, Upload, User, Wrench, Zap,
+  AlertTriangle, CheckCircle, Cpu, Download, ExternalLink, Key, Loader2, Lock, LogOut, MessageCircle, Plus, Power, RefreshCw, Rocket, RotateCcw, Server, Settings, Shield, Sparkles, Square, Trash2, Upload, User, Wrench, Zap, UserCircle,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
 import TokenConfigCard from "../components/TokenConfigCard";
 import ChannelConfigCard from "../components/ChannelConfigCard";
+import ProfileConfigCard from "../components/ProfileConfigCard";
 
 interface InstanceInfo {
   id: number;
@@ -36,7 +37,7 @@ interface ClawManagerInstanceStatus {
 
 type InstanceType = "OpenClaw" | "HermesAgent";
 type SkillTemplate = "content" | "devops" | "tutor" | "none";
-type ActiveTab = "config" | "token" | "channel" | "skill";
+type ActiveTab = "config" | "token" | "channel" | "skill" | "profile";
 
 interface SkillTemplateInfo {
   id: string;
@@ -69,6 +70,7 @@ const SIDEBAR_ITEMS: { id: ActiveTab; label: string; icon: React.ElementType }[]
   { id: "token", label: "Token配置", icon: Key },
   { id: "channel", label: "Channel配置", icon: MessageCircle },
   { id: "skill", label: "技能配置", icon: Sparkles },
+  { id: "profile", label: "档案配置", icon: UserCircle },
 ];
 
 const DashboardPage: React.FC = () => {
@@ -941,6 +943,8 @@ const DashboardPage: React.FC = () => {
             <TokenConfigCard instanceId={selectedInstance?.id} defaultProvider={selectedInstance?.default_provider} />
           ) : activeTab === "channel" ? (
             <ChannelConfigCard instanceId={selectedInstance?.id} />
+          ) : activeTab === "profile" ? (
+            <ProfileConfigCard instanceId={selectedInstance?.id} />
           ) : (
             /* Skill Panel (技能配置) */
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
