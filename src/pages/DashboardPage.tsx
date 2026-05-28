@@ -35,7 +35,7 @@ interface ClawManagerInstanceStatus {
   pod_status?: string;
 }
 
-type InstanceType = "OpenClaw" | "HermesAgent";
+type InstanceType = "智能客服" | "情报获取" | "文案写作" | "视频创作";
 type SkillTemplate = "content" | "devops" | "tutor" | "none";
 type ActiveTab = "config" | "token" | "channel" | "skill" | "profile";
 
@@ -82,7 +82,7 @@ const DashboardPage: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [instanceName, setInstanceName] = useState("我的 QAgent");
-  const [instanceType, setInstanceType] = useState<InstanceType>("OpenClaw");
+  const [instanceType, setInstanceType] = useState<InstanceType>("智能客服");
   const [skillTemplate, setSkillTemplate] = useState<SkillTemplate>("none");
   const [selectedInstallTemplate, setSelectedInstallTemplate] = useState<SkillTemplate>("none");
   const [cpuCores, setCpuCores] = useState<number>(1);
@@ -207,10 +207,12 @@ const DashboardPage: React.FC = () => {
     setIsCreating(true);
 
     try {
+      const imageId = instanceType === "智能客服" ? "openclaw-shell:latest" : "hermesagent:latest";
       await api.post("/qagent/create", null, {
         params: {
           name: instanceName,
           type: instanceType,
+          image_id: imageId,
           skill: skillTemplate,
           cpu_cores: cpuCores,
           memory_gb: memoryGb,
@@ -582,21 +584,28 @@ const DashboardPage: React.FC = () => {
                     </label>
                     <div className="grid grid-cols-2 gap-3">
                       {([
-                        { id: "OpenClaw" as InstanceType, label: "OpenClaw", desc: "复杂任务编排与多工具协作" },
-                        { id: "HermesAgent" as InstanceType, label: "HermesAgent", desc: "长期记忆与自主技能进化" },
+                        { id: "智能客服" as InstanceType, label: "智能客服", desc: "专业客服，自动应答与问题处理", image: "openclaw-shell:latest", available: true },
+                        { id: "情报获取" as InstanceType, label: "情报获取", desc: "信息采集、数据分析与洞察提取", image: "hermesagent:latest", available: false },
+                        { id: "文案写作" as InstanceType, label: "文案写作", desc: "内容创作、营销文案与文本生成", image: "hermesagent:latest", available: false },
+                        { id: "视频创作" as InstanceType, label: "视频创作", desc: "视频脚本、剪辑方案与创意策划", image: "hermesagent:latest", available: false },
                       ]).map((t) => (
                         <button
                           key={t.id}
                           type="button"
-                          onClick={() => setInstanceType(t.id)}
-                          className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all text-left ${
-                            instanceType === t.id
+                          onClick={() => t.available && setInstanceType(t.id)}
+                          className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all text-left relative ${
+                            !t.available
+                              ? "border-slate-700/50 bg-slate-800/40 text-slate-600 cursor-not-allowed"
+                              : instanceType === t.id
                               ? "border-amber-500 bg-amber-500/10 text-amber-400"
                               : "border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600"
                           }`}
                         >
                           <span className="block">{t.label}</span>
                           <span className="block text-[11px] font-normal text-slate-500 mt-0.5">{t.desc}</span>
+                          {!t.available && (
+                            <span className="absolute top-2 right-2 text-[10px] px-1.5 py-0.5 bg-slate-700/60 text-slate-500 rounded">即将开放</span>
+                          )}
                         </button>
                       ))}
                     </div>

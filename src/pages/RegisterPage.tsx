@@ -54,7 +54,7 @@ const RegisterPage: React.FC = () => {
               <span className="text-amber-400 text-sm font-medium">开启您的 AI 之旅</span>
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">注册账号</h1>
-            <p className="text-slate-400 text-sm">创建您的 QAgent 账户，开通专属 QAgent AI 助理</p>
+            <p className="text-slate-400 text-sm">创建您的 QAgent 账户，即可开通QAgent智能客服</p>
           </div>
 
           {error && (

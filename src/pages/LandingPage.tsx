@@ -19,10 +19,10 @@ const LandingPage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
 
   const agents = [
-    { name: "文案Q姐", role: "内容创作", color: "pink" },
-    { name: "财务Q爷", role: "财务管理", color: "green" },
-    { name: "工程Q哥", role: "技术编程", color: "blue" },
-    { name: "教务阿Q", role: "学习辅导", color: "amber" },
+    { name: "智能客服", role: "智能客服", color: "amber" },
+    { name: "情报获取", role: "情报获取", color: "blue" },
+    { name: "文案写作", role: "文案写作", color: "pink" },
+    { name: "视频创作", role: "视频创作", color: "green" },
   ];
   const visibleCount = 4;
   const totalPages = Math.ceil(agents.length / visibleCount);
@@ -98,7 +98,7 @@ const LandingPage: React.FC = () => {
               <button onClick={() => scrollToSection("contact")} className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
                 联系我们
               </button>
-              <a href="https://www.openskill.top/" target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
+              <a href="https://agent.quseit.com" target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-amber-400 transition-colors text-sm font-medium">
                 文档
               </a>
             </div>
@@ -157,7 +157,7 @@ const LandingPage: React.FC = () => {
                 <button onClick={() => scrollToSection("contact")} className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
                   联系我们
                 </button>
-                <a href="https://www.openskill.top/" target="_blank" rel="noopener noreferrer" className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
+                <a href="https://agent.quseit.com" target="_blank" rel="noopener noreferrer" className="block w-full text-left py-2 text-slate-300 hover:text-amber-400">
                   文档
                 </a>
                 <button
@@ -703,8 +703,9 @@ const LandingPage: React.FC = () => {
                   <MapPin className="w-6 h-6 text-amber-400" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold mb-2">公司地址</h3>
-                  <p className="text-slate-400 text-sm">北京市海淀区永澄北路2号院1号楼一层A1839</p>
+                  <h3 className="text-white font-semibold mb-2">公司名称</h3>
+                  <p className="text-slate-400 text-sm">北京优趣天下信息技术有限公司</p>
+	                  <p className="text-slate-400 text-sm">北京市海淀区永澄北路2号院1号楼一层A1839</p>
                 </div>
               </div>
               <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex items-start gap-4">
