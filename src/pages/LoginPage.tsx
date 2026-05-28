@@ -52,7 +52,7 @@ const LoginPage: React.FC = () => {
               <span className="text-amber-400 text-sm font-medium">欢迎回来</span>
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">登录账号</h1>
-            <p className="text-slate-400 text-sm">登录您的 QAgent 账户，管理您的 AI 助理</p>
+            <p className="text-slate-400 text-sm">登录您的 QAgent 账户，管理您的QAgent智能客服</p>
           </div>
 
           {error && (
